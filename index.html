@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Super Shiny Turd: Swarm Survivors - Cronos Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Orbitron:wght@500;700;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #030712;
+            font-family: 'Chakra Petch', sans-serif;
+            overflow: hidden;
+            color: #f1f5f9;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .rainbow-text {
+            background: linear-gradient(135deg, #ff007a, #9d00ff, #00f0ff, #00ff66, #ffdd00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Virtual touch joystick */
+        #joystick-base {
+            display: none;
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.25) 0%, rgba(15, 23, 42, 0.6) 70%);
+            border: 2px solid rgba(0, 240, 255, 0.45);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 40;
+        }
+
+        #joystick-thumb {
+            display: none;
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle, #00f0ff 0%, #0369a1 80%);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #00f0ff;
+            z-index: 41;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center relative overflow-hidden bg-slate-950">
+
+    <!-- Primary Canvas -->
+    <canvas id="gameCanvas" class="w-full h-full absolute inset-0 cursor-crosshair z-0"></canvas>
+
+    <!-- Mobile Touch Joysticks -->
+    <div id="joystick-base"></div>
+    <div id="joystick-thumb"></div>
+
+    <!-- Live HUD Header -->
+    <header class="absolute top-0 left-0 right-0 p-2 sm:p-4 z-20 flex justify-between items-start pointer-events-none gap-2">
+        <!-- Player Stats & XP -->
+        <div class="glass-panel rounded-2xl p-2.5 sm:p-3 w-48 sm:w-72 pointer-events-auto border-cyan-500/30">
+            <div class="flex justify-between items-center mb-1 text-xs">
+                <span class="font-cyber text-cyan-300 font-bold">LVL <span id="hud-level" class="text-white text-sm">1</span></span>
+                <span class="text-slate-400 font-mono text-[11px]" id="hud-xp-label">0/70 XP</span>
+            </div>
+            <!-- XP Progress -->
+            <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-indigo-500 rounded-full transition-all duration-150" style="width: 0%;"></div>
+            </div>
+            <!-- Health & Lives -->
+            <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800 text-[11px]">
+                <span class="text-rose-400 font-bold">❤️ HP <span id="hud-hp-text" class="text-white">100/100</span></span>
+                <span class="text-amber-300 font-bold font-mono">🎟️ LIVES: <span id="hud-lives" class="text-white">3</span></span>
+            </div>
+        </div>
+
+        <!-- Center Match Timer & Wave Info -->
+        <div class="glass-panel rounded-2xl px-4 py-2 flex flex-col items-center pointer-events-auto border-amber-500/30 text-center">
+            <span class="text-[9px] uppercase tracking-widest text-amber-400 font-mono">Survival Clock</span>
+            <span id="hud-timer" class="font-cyber text-xl sm:text-2xl font-bold text-white tracking-wider">00:00</span>
+            <span id="hud-wave" class="text-[10px] text-slate-300 font-semibold tracking-wide uppercase mt-0.5">Wave 1: Paper Hands</span>
+        </div>
+
+        <!-- Right Quick Actions: Perks, Solid Wipe, Burn -->
+        <div class="flex flex-col gap-2 items-end pointer-events-auto">
+            <!-- Active Profile Tag -->
+            <div class="glass-panel py-1 px-3 rounded-xl border-cyan-400/40 text-[11px] font-mono flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="hud-player-name" class="font-bold text-slate-200 truncate max-w-[110px]">TurdKing</span>
+                <span class="text-amber-400 font-bold" id="hud-burned-sum">0k USST</span>
+            </div>
+
+            <!-- In-Game Action Buttons -->
+            <div class="flex gap-1.5 sm:gap-2">
+                <!-- Perks Shop Trigger -->
+                <button id="btn-open-perks" class="py-1.5 px-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-extrabold text-xs shadow-lg uppercase tracking-wider flex items-center gap-1 transition active:scale-95 border border-pink-300/40">
+                    <span>⚡</span> <span>PERKS</span>
+                </button>
+                <!-- Quick Solid Wipe Trigger -->
+                <button id="btn-use-wipe" class="py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs shadow-lg uppercase tracking-wider flex items-center gap-1.5 transition active:scale-95 border border-teal-200">
+                    <span>🧻</span> <span>WIPE (<span id="hud-wipe-count">3</span>)</span>
+                </button>
+            </div>
+
+            <!-- Quick Token Arcade Insert Button -->
+            <button id="btn-quick-insert" class="py-1 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-mono text-[10px] border border-amber-500/40 transition">
+                +10k $USST (+3 Lives)
+            </button>
+        </div>
+    </header>
+
+    <!-- Bottom Left Navigation Utilities -->
+    <div class="absolute bottom-3 left-3 z-20 flex gap-2 pointer-events-auto">
+        <button id="btn-toggle-sound" class="glass-panel p-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-xs flex items-center gap-1">
+            <span id="sound-icon">🔊</span>
+        </button>
+        <!-- Admin button is hidden from public view by default -->
+        <button id="btn-open-admin" class="glass-panel p-2.5 rounded-xl hover:bg-slate-800 text-amber-400 text-xs font-mono font-bold hidden items-center gap-1">
+            <span>⚙️</span> ADMIN
+        </button>
+    </div>
+
+    <!-- Active Weapons / Buffs Indicator Row (Bottom Right) -->
+    <div class="absolute bottom-3 right-3 z-20 flex gap-1.5 pointer-events-none">
+        <div class="glass-panel p-1.5 px-2.5 rounded-xl text-center border-cyan-400/40">
+            <div class="text-xs">💎</div>
+            <div class="text-[8px] font-bold text-cyan-300">SHARDS</div>
+            <div id="buff-shards" class="text-[10px] font-mono font-bold">L1</div>
+        </div>
+        <div class="glass-panel p-1.5 px-2.5 rounded-xl text-center border-amber-400/40">
+            <div class="text-xs">🪐</div>
+            <div class="text-[8px] font-bold text-amber-300">ORBS</div>
+            <div id="buff-orbiters" class="text-[10px] font-mono font-bold">L1</div>
+        </div>
+        <div class="glass-panel p-1.5 px-2.5 rounded-xl text-center border-emerald-400/40">
+            <div class="text-xs">💨</div>
+            <div class="text-[8px] font-bold text-emerald-300">CLOUD</div>
+            <div id="buff-stink" class="text-[10px] font-mono font-bold">L0</div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: In-Game Perks Tab (Pauses Game) -->
+    <div id="modal-perks" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex-col items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-3xl max-w-md w-full border-fuchsia-500/50 shadow-2xl relative text-center">
+            <div class="w-12 h-12 mx-auto mb-2 bg-fuchsia-500/20 rounded-2xl flex items-center justify-center text-2xl border border-fuchsia-500/40">
+                ⚡
+            </div>
+            <h3 class="text-2xl font-cyber font-black text-white">GAME PERKS SHOP</h3>
+            <p class="text-xs text-slate-400 mt-1">Combat is paused. Enhance your survivability with premium Web3 boosts.</p>
+
+            <!-- Featured Perk: Solid Wipe -->
+            <div class="mt-5 p-4 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/90 border border-emerald-500/50 text-left">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">🧻</span>
+                        <div>
+                            <h4 class="font-cyber font-bold text-emerald-400 text-base">SOLID WIPE</h4>
+                            <span class="text-[11px] text-slate-300 font-mono">Screen Cleaning Rolls (3 Uses)</span>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-extrabold text-xs border border-emerald-500/40">$1.00 USDC</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+                    Instantly wipes all mobs, pigeons, and bosses off the screen using rolling 3D toilet paper rolls. Converts all enemies into green diamond XP gems!
+                </p>
+                <div class="mt-4 flex gap-2">
+                    <button id="btn-buy-wipe" class="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition active:scale-95">
+                        BUY FOR $1 USDC (+3 WIPES)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Close & Resume Button -->
+            <button id="btn-close-perks" class="mt-5 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider transition">
+                RESUME COMBAT
+            </button>
+        </div>
+    </div>
+
+    <!-- UI MODAL: Roguelike Level Up Choice -->
+    <div id="modal-levelup" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex-col items-center justify-center p-4">
+        <div class="text-center mb-5">
+            <span class="text-amber-400 font-mono tracking-widest text-xs uppercase font-bold">Cronos Vault Augment</span>
+            <h2 class="text-3xl sm:text-4xl font-cyber font-black text-white mt-1">
+                LEVEL UP! <span class="rainbow-text" id="modal-lvl-number">LVL 2</span>
+            </h2>
+            <p class="text-slate-400 text-xs mt-1">Pick a powerup to empower the Ultimate Super Shiny Turd</p>
+        </div>
+        <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-4xl"></div>
+    </div>
+
+    <!-- UI MODAL: Rugged Out / Game Over -->
+    <div id="modal-gameover" class="absolute inset-0 bg-slate-950/90 backdrop-blur-lg z-50 hidden flex-col items-center justify-center p-4">
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center border-rose-500/40 shadow-2xl">
+            <div class="w-16 h-16 mx-auto mb-3 bg-rose-500/20 rounded-full flex items-center justify-center text-3xl border border-rose-500/50">
+                💀
+            </div>
+            <h2 class="text-3xl font-cyber font-black text-rose-400">RUGGED OUT</h2>
+            <p class="text-slate-400 text-xs mt-1">The paper hands and pigeon poop overwhelmed your liquidity</p>
+            
+            <div class="grid grid-cols-2 gap-3 my-5 p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-left font-mono">
+                <div>
+                    <span class="text-[10px] text-slate-400 block">TIME SURVIVED</span>
+                    <span id="final-time" class="text-lg font-bold text-cyan-300">00:00</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block">MOBS SLAYED</span>
+                    <span id="final-kills" class="text-lg font-bold text-white">0</span>
+                </div>
+                <div class="col-span-2 pt-2 border-t border-slate-800 flex justify-between items-center">
+                    <span class="text-xs text-amber-400 font-bold">$USST BURNED:</span>
+                    <span id="final-burned" class="text-sm sm:text-base font-extrabold text-amber-400">0 USST</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2.5">
+                <button id="btn-revive" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold text-sm tracking-wider uppercase transition shadow-lg flex items-center justify-center gap-2">
+                    <span>⚡</span> REVIVE (USE 1 LIFE CREDIT)
+                </button>
+                <button id="btn-restart" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs tracking-wider uppercase transition">
+                    🔄 New Fresh Run
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: COMPLETE ADMIN PANEL -->
+    <div id="modal-admin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[60] hidden flex-col items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel p-5 sm:p-7 rounded-3xl max-w-4xl w-full border-amber-500/40 shadow-2xl relative my-auto max-h-[90vh] flex flex-col pointer-events-auto">
+            <!-- Admin Top Bar -->
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">⚙️</span>
+                    <div>
+                        <h3 class="text-xl font-cyber font-bold text-white">USST ARCADE ADMIN</h3>
+                        <span class="text-[10px] text-amber-400 font-mono">Master Vault & User Management</span>
+                    </div>
+                </div>
+                <button id="btn-close-admin" class="text-slate-400 hover:text-white text-xl font-mono px-2">✕</button>
+            </div>
+
+            <!-- Password Gate View (Shown if not unlocked) -->
+            <div id="admin-auth-view" class="py-8 flex flex-col items-center text-center">
+                <span class="text-4xl mb-3">🔐</span>
+                <h4 class="font-cyber text-lg font-bold text-slate-200">Enter Admin Master Key</h4>
+                <p class="text-xs text-slate-400 mt-1 max-w-sm">Default key is <code class="text-cyan-400 font-mono">usstadmin2026</code></p>
+                <div class="flex gap-2 mt-4 w-full max-w-xs">
+                    <input id="input-admin-pass" type="password" placeholder="Admin Key" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm font-mono text-white focus:outline-none focus:border-amber-400" />
+                    <button id="btn-auth-admin" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider">LOGIN</button>
+                </div>
+                <span id="admin-auth-error" class="text-rose-400 text-xs mt-2 hidden">Invalid Key!</span>
+            </div>
+
+            <!-- Admin Main Workspace View (Unlocked) -->
+            <div id="admin-workspace-view" class="hidden flex-col gap-4 mt-4 overflow-y-auto pr-1">
+                <!-- Navigation Tabs -->
+                <div class="flex gap-2 border-b border-slate-800 pb-2 text-xs font-mono">
+                    <button id="tab-btn-users" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold">USERS & PROFILES</button>
+                    <button id="tab-btn-nft" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">NFT TRAITS</button>
+                    <button id="tab-btn-tuning" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">GAME TUNING</button>
+                    <button id="tab-btn-vault" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">VAULT LEDGER</button>
+                </div>
+
+                <!-- TAB 1: User Profiles & Allowance Manager -->
+                <div id="tab-content-users" class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-mono text-slate-400">Registered Profiles (<span id="user-count">0</span>)</span>
+                        <button id="btn-add-profile-prompt" class="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold">+ New Profile</button>
+                    </div>
+
+                    <!-- User Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/60 max-h-56 overflow-y-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 text-[10px] uppercase">
+                                <tr>
+                                    <th class="p-2.5">Name / Wallet</th>
+                                    <th class="p-2.5">Lives (Credits)</th>
+                                    <th class="p-2.5">Solid Wipes</th>
+                                    <th class="p-2.5 text-amber-400 font-bold">High Score</th>
+                                    <th class="p-2.5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-user-tbody" class="divide-y divide-slate-800/80">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Selected Profile Fast Action Box -->
+                    <div id="profile-action-box" class="p-3.5 rounded-xl bg-slate-900 border border-cyan-500/30 text-xs font-mono">
+                        <span class="text-cyan-400 font-bold block mb-2">QUICK ALLOWANCE ADJUSTMENT: <span id="adj-user-name" class="text-white">None Selected</span></span>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button id="btn-deposit-lives" class="py-1.5 px-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/50 rounded-lg text-emerald-300 font-bold">+3 Lives (10k USST)</button>
+                            <button id="btn-withdraw-lives" class="py-1.5 px-2 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/50 rounded-lg text-rose-300 font-bold">-1 Life</button>
+                            <button id="btn-deposit-wipes" class="py-1.5 px-2 bg-teal-600/30 hover:bg-teal-600/50 border border-teal-500/50 rounded-lg text-teal-300 font-bold">+3 Solid Wipes</button>
+                            <button id="btn-withdraw-wipes" class="py-1.5 px-2 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 rounded-lg text-amber-300 font-bold">-1 Solid Wipe</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: NFT Traits & Bonus Configurator -->
+                <div id="tab-content-nft" class="hidden flex-col gap-3 font-mono text-xs">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-amber-400 font-bold block text-sm">SCARY SHITZ TRAIT BONUS ALLOCATOR</span>
+                            <span class="text-slate-400 text-[10px]">Map any of the 16 Halloween mint traits to the 4 game bonuses.</span>
+                        </div>
+                        <button id="btn-reset-nft-rules" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Reset Defaults</button>
+                    </div>
+
+                    <div class="overflow-y-auto max-h-[55vh] pr-1 space-y-2" id="nft-traits-admin-list">
+                        <!-- Populated dynamically with checkboxes for 5% pts, 3 wipes, lvl 3 items, 3 lives -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: Live Game Tuning & Difficulty Modifiers -->
+                <div id="tab-content-tuning" class="hidden flex-col gap-3 font-mono text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <div class="flex justify-between">
+                                <span>MOB HEALTH SCALE:</span>
+                                <span id="val-hp-mult" class="text-amber-400 font-bold">1.0x</span>
+                            </div>
+                            <input id="slider-hp-mult" type="range" min="0.5" max="3.0" step="0.1" value="1.0" class="w-full mt-2 accent-amber-400" />
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <div class="flex justify-between">
+                                <span>SPAWN INTERVAL:</span>
+                                <span id="val-spawn-rate" class="text-cyan-400 font-bold">1.0s</span>
+                            </div>
+                            <input id="slider-spawn-rate" type="range" min="0.3" max="2.5" step="0.1" value="1.0" class="w-full mt-2 accent-cyan-400" />
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <div class="flex justify-between">
+                                <span>PIGEON POOP DELAY:</span>
+                                <span id="val-pigeon-speed" class="text-rose-400 font-bold">2.5s</span>
+                            </div>
+                            <input id="slider-pigeon-speed" type="range" min="0.8" max="5.0" step="0.2" value="2.5" class="w-full mt-2 accent-rose-400" />
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                            <div class="flex justify-between">
+                                <span>PLAYER FIRE RATE:</span>
+                                <span id="val-player-fr" class="text-emerald-400 font-bold">400ms</span>
+                            </div>
+                            <input id="slider-player-fr" type="range" min="100" max="800" step="25" value="400" class="w-full mt-2 accent-emerald-400" />
+                        </div>
+                    </div>
+                    <button id="btn-reset-tuning" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase transition">
+                        Reset Balancing to Defaults
+                    </button>
+                </div>
+
+                <!-- TAB 3: Vault Ledger -->
+                <div id="tab-content-vault" class="hidden flex-col gap-3 font-mono text-xs">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-4 rounded-xl bg-slate-900 border border-amber-500/30">
+                            <span class="text-[10px] text-slate-400 block uppercase">Global $USST Burned</span>
+                            <span id="admin-vault-burned" class="text-xl font-bold text-amber-400 mt-1 block">0 USST</span>
+                        </div>
+                        <div class="p-4 rounded-xl bg-slate-900 border border-emerald-500/30">
+                            <span class="text-[10px] text-slate-400 block uppercase">USDC Perk Revenue</span>
+                            <span id="admin-vault-usdc" class="text-xl font-bold text-emerald-400 mt-1 block">$0.00 USDC</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button id="btn-export-json" class="flex-1 py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 font-bold uppercase transition">
+                            Export Users JSON
+                        </button>
+                        <button id="btn-wipe-all-data" class="py-2 px-4 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 font-bold uppercase transition">
+                            Factory Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI MODAL: START SCREEN -->
+    <div id="modal-start" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4 text-center">
+        <div class="max-w-md w-full glass-panel p-6 sm:p-7 rounded-3xl border-cyan-500/50 shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <div class="text-4xl mb-1">👑💩✨</div>
+            <h1 class="text-xl sm:text-2xl font-cyber font-black text-white tracking-wider">
+                <span class="rainbow-text">ULTIMATE SUPER SHINY TURD</span>
+            </h1>
+            <p class="text-cyan-400 text-[10px] font-mono tracking-widest uppercase font-bold">Swarm Survivors - Cronos Edition</p>
+
+            <!-- NFT Character Selector Carousel -->
+            <div class="mt-3 p-3 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-left font-mono">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[10px] uppercase text-cyan-300 font-bold">Select Hero NFT:</span>
+                    <span id="char-select-token-name" class="text-xs font-bold text-amber-300 truncate max-w-[180px]">Ultimate Super Shiny Turd (OG)</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button id="btn-char-prev" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm flex items-center justify-center transition">◀</button>
+                    <!-- Mini Canvas Preview of Avatar with Authentic Image Support -->
+                    <div class="relative w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden mx-auto shadow-inner">
+                        <img id="charPreviewImg" class="w-full h-full object-cover hidden" alt="NFT Preview" />
+                        <canvas id="charPreviewCanvas" width="96" height="96" class="w-full h-full"></canvas>
+                        <span id="nft-badge-owned" class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-emerald-500/80 text-white text-[8px] font-bold font-mono">OWNED</span>
+                    </div>
+                    <button id="btn-char-next" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm flex items-center justify-center transition">▶</button>
+                </div>
+
+                <!-- Active Player Profile Name Input -->
+                <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between gap-2 text-[10px]">
+                    <span class="text-slate-400">Player Tag:</span>
+                    <div class="flex items-center gap-1.5 flex-1 justify-end">
+                        <input id="input-active-name" type="text" value="TurdKing" maxlength="14" class="px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white text-[10px] font-mono focus:outline-none focus:border-cyan-400 w-28 text-center" />
+                        <button id="btn-save-name" class="px-2 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] transition">Set</button>
+                    </div>
+                </div>
+
+                <!-- Web3 Connect Wallet / Holder Simulation Bar -->
+                <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                    <span class="text-slate-400">Wallet Inventory:</span>
+                    <div class="flex gap-1.5">
+                        <button id="btn-connect-wallet" class="px-2 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-[10px] transition">
+                            🦊 Connect Wallet
+                        </button>
+                        <button id="btn-toggle-all-nfts" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[9px] hover:text-white" title="Show all 69 NFTs or only owned">
+                            Show All (Demo)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- NFT Traits Badges List -->
+                <div class="grid grid-cols-2 gap-1 text-[9px] mt-2 text-slate-400" id="char-trait-details">
+                    <div>Eyes: <span class="text-cyan-300" id="trait-val-eyes">Cyan Glow</span></div>
+                    <div>Scarf: <span class="text-rose-300" id="trait-val-scarf">Crypt Plaid</span></div>
+                    <div>Color: <span class="text-purple-300" id="trait-val-color">Rainbow Metal</span></div>
+                    <div>Scene: <span class="text-emerald-300" id="trait-val-bg">Arena Grid</span></div>
+                </div>
+
+                <!-- Active Bonus Badges for selected NFT -->
+                <div class="mt-2 pt-2 border-t border-slate-800 flex flex-wrap gap-1" id="char-bonus-badges">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-2">
+                <button id="btn-start-game" class="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-cyber font-black text-sm tracking-wider uppercase shadow-xl transition active:scale-95">
+                    LAUNCH RUN
+                </button>
+                <!-- Hidden from public start screen -->
+                <button id="btn-start-admin" class="py-1 text-xs font-mono text-slate-400 hover:text-amber-400 hidden items-center justify-center gap-1 transition">
+                    <span>⚙️</span> Open Admin Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toast" class="absolute top-20 z-50 pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-4 px-4 py-2 rounded-xl glass-panel text-xs font-mono font-bold"></div>
+
+    <!-- GAME CODE SCRIPT -->
+    <script>
+        /* ==========================================================
+           SCARY SHITZ 69-PIECE NFT COLLECTION METADATA & CONFIG
+           ========================================================== */
+        const SCARY_SHITZ_TRAIT_OPTIONS = {
+            'Eyes': ['Bloodshot Ghoul', "Jack-o'-Lantern Glow", 'Ghostly Cataract', 'Cursed Button Stitch'],
+            'Scarf Color': ['Toxic Slime Knit', 'Crypt Plaid', 'Midnight Cobweb', 'Rotting Mummy Gauze'],
+            'Main Color': ['Charred Obsidian', 'Necrotic Moss', 'Spectral Lilac', 'Pumpkin Patchwork'],
+            'Background': ['Haunted Crypt', 'Midnight Pumpkin Patch', 'Blood Moon Graveyard', 'Abyssal Void']
+        };
+
+        // Complete 69-token collection generated deterministically from the 4x4x4x4 trait permutations
+        const SCARY_SHITZ_COLLECTION = [];
+        (function buildScaryShitzTokens() {
+            // Token #0 is default Rainbow Ultimate Super Shiny Turd
+            SCARY_SHITZ_COLLECTION.push({
+                id: 0,
+                name: "Ultimate Super Shiny Turd (OG)",
+                traits: {
+                    'Eyes': 'Cyan Glow Rings',
+                    'Scarf Color': 'Crypt Plaid',
+                    'Main Color': 'Rainbow Chrome',
+                    'Background': 'Arena Grid'
+                }
+            });
+
+            const eyesList = SCARY_SHITZ_TRAIT_OPTIONS['Eyes'];
+            const scarfList = SCARY_SHITZ_TRAIT_OPTIONS['Scarf Color'];
+            const colorList = SCARY_SHITZ_TRAIT_OPTIONS['Main Color'];
+            const bgList = SCARY_SHITZ_TRAIT_OPTIONS['Background'];
+
+            let count = 1;
+            for (let c = 0; c < colorList.length && count <= 69; c++) {
+                for (let s = 0; s < scarfList.length && count <= 69; s++) {
+                    for (let e = 0; e < eyesList.length && count <= 69; e++) {
+                        for (let b = 0; b < bgList.length && count <= 69; b++) {
+                            SCARY_SHITZ_COLLECTION.push({
+                                id: count,
+                                name: `Scary Shitz #${count}`,
+                                traits: {
+                                    'Eyes': eyesList[e],
+                                    'Scarf Color': scarfList[s],
+                                    'Main Color': colorList[c],
+                                    'Background': bgList[b]
+                                }
+                            });
+                            count++;
+                        }
+                    }
+                }
+            }
+        })();
+
+        const STORAGE_KEY_NFT_RULES = 'USST_NFT_TRAIT_RULES_V2';
+
+        // Default Admin Rules Mapping Traits -> In-Game Bonuses
+        let nftTraitBonusRules = {
+            'Cursed Button Stitch': ['5% points bonus'],
+            'Rotting Mummy Gauze': ['3 free wipes'],
+            'Pumpkin Patchwork': ['automatic lvl 3 items'],
+            'Blood Moon Graveyard': ['3 free lives'],
+            'Bloodshot Ghoul': ['5% points bonus'],
+            'Toxic Slime Knit': ['3 free wipes'],
+            'Charred Obsidian': ['automatic lvl 3 items'],
+            'Abyssal Void': ['3 free lives']
+        };
+
+        let selectedNftIndex = 0; // 0 = OG, 1..69 = Scary Shitz #1..#69
+        let showOnlyOwnedNfts = false;
+        let connectedWallet = null;
+        let userOwnedTokenIds = [0, 1, 2, 3, 9, 10, 19, 42, 69]; // Default simulated wallet inventory
+
+        // Authentic Image Cache Store (id -> Image or dataURL)
+        const nftImageCache = {};
+        const STORAGE_KEY_IMAGE_CACHE = 'USST_NFT_IMG_CACHE_V2';
+
+        function loadCachedImages() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_IMAGE_CACHE);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    Object.entries(parsed).forEach(([id, dataUrl]) => {
+                        const img = new Image();
+                        img.src = dataUrl;
+                        nftImageCache[id] = img;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load cached NFT images:", err);
+            }
+        }
+        loadCachedImages();
+
+        function updateCachedCountLabel() {
+            const el = document.getElementById('nft-cache-count');
+            if (el) {
+                const count = Object.keys(nftImageCache).length;
+                el.innerText = `${count} / 69 Cached`;
+            }
+        }
+
+        function loadNftRules() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_NFT_RULES);
+                if (stored) {
+                    nftTraitBonusRules = Object.assign(nftTraitBonusRules, JSON.parse(stored));
+                }
+            } catch (err) {
+                console.error("Failed to load NFT trait rules:", err);
+            }
+        }
+        loadNftRules();
+
+        function saveNftRules() {
+            try {
+                localStorage.setItem(STORAGE_KEY_NFT_RULES, JSON.stringify(nftTraitBonusRules));
+            } catch (err) {
+                console.error("NFT rules save error:", err);
+            }
+        }
+
+        function getBonusesForToken(token) {
+            const bonuses = new Set();
+            if (!token || !token.traits) return bonuses;
+            Object.values(token.traits).forEach(traitVal => {
+                const rules = nftTraitBonusRules[traitVal];
+                if (rules && Array.isArray(rules)) {
+                    rules.forEach(b => bonuses.add(b));
+                }
+            });
+            return bonuses;
+        }
+
+        /* ==========================================================
+           COLOR PALETTES FOR NFT RENDERING
+           ========================================================== */
+        function getColorsForToken(token) {
+            const t = token.traits;
+            let mainGradients = ['#ff3366', '#ffcc00', '#00f0ff', '#b000ff', '#00ff88']; // default rainbow
+            if (t['Main Color'] === 'Charred Obsidian') {
+                mainGradients = ['#1e293b', '#0f172a', '#334155', '#475569', '#020617'];
+            } else if (t['Main Color'] === 'Necrotic Moss') {
+                mainGradients = ['#14532d', '#15803d', '#22c55e', '#4ade80', '#166534'];
+            } else if (t['Main Color'] === 'Spectral Lilac') {
+                mainGradients = ['#581c87', '#7e22ce', '#a855f7', '#d8b4fe', '#9333ea'];
+            } else if (t['Main Color'] === 'Pumpkin Patchwork') {
+                mainGradients = ['#7c2d12', '#c2410c', '#ea580c', '#f97316', '#fb923c'];
+            }
+
+            let scarfColor = '#dc2626';
+            let scarfStripe = '#facc15';
+            if (t['Scarf Color'] === 'Toxic Slime Knit') {
+                scarfColor = '#10b981'; scarfStripe = '#84cc16';
+            } else if (t['Scarf Color'] === 'Crypt Plaid') {
+                scarfColor = '#dc2626'; scarfStripe = '#facc15';
+            } else if (t['Scarf Color'] === 'Midnight Cobweb') {
+                scarfColor = '#1e1b4b'; scarfStripe = '#94a3b8';
+            } else if (t['Scarf Color'] === 'Rotting Mummy Gauze') {
+                scarfColor = '#d6d3d1'; scarfStripe = '#78716c';
+            }
+
+            let eyeGlow = '#00f0ff';
+            let eyeStyle = 'glow';
+            if (t['Eyes'] === 'Bloodshot Ghoul') {
+                eyeGlow = '#ef4444'; eyeStyle = 'bloodshot';
+            } else if (t['Eyes'] === "Jack-o'-Lantern Glow") {
+                eyeGlow = '#f97316'; eyeStyle = 'jack';
+            } else if (t['Eyes'] === 'Ghostly Cataract') {
+                eyeGlow = '#e2e8f0'; eyeStyle = 'cataract';
+            } else if (t['Eyes'] === 'Cursed Button Stitch') {
+                eyeGlow = '#a855f7'; eyeStyle = 'button';
+            }
+
+            return { mainGradients, scarfColor, scarfStripe, eyeGlow, eyeStyle };
+        }
+
+        /* ==========================================================
+           AUDIO ENGINE (SYNTHETIC WEBAUDIO)
+           ========================================================== */
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playShoot() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(620, now);
+                osc.frequency.exponentialRampToValueAtTime(160, now + 0.1);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playHit() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(170, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            playPooSplat() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.exponentialRampToValueAtTime(90, now + 0.14);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.14);
+            }
+
+            playToiletPaperWipe() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.8;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(400, now);
+                filter.frequency.linearRampToValueAtTime(1200, now + 0.4);
+                filter.frequency.linearRampToValueAtTime(300, now + 0.8);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+                noise.stop(now + 0.8);
+            }
+
+            playXP() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(900 + Math.random() * 200, now);
+                osc.frequency.exponentialRampToValueAtTime(1500, now + 0.08);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            playCoin() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(987.77, now);
+                osc.frequency.setValueAtTime(1318.51, now + 0.08);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+        const audio = new AudioEngine();
+
+        /* ==========================================================
+           ADMIN & USER PROFILE STATE (LocalStorage Persisted)
+           ========================================================== */
+        const STORAGE_KEY_PROFILES = 'USST_USER_PROFILES_V2';
+        const STORAGE_KEY_CONFIG = 'USST_GAME_CONFIG_V2';
+        const ADMIN_MASTER_PASS = 'usstadmin2026';
+
+        // Default Game Configuration (Tunable by Admin)
+        let gameConfig = {
+            mobHpMultiplier: 1.0,
+            spawnRate: 1.0,
+            pigeonAttackInterval: 2.5,
+            playerFireRate: 400,
+            toiletPaperRollSpeed: 950
+        };
+
+        // Default User Profiles Database
+        let userProfiles = {
+            'TurdKing': { name: 'TurdKing', lives: 3, wipes: 3, highScore: 410, totalBurned: 10000 },
+            'PigeonSlayer': { name: 'PigeonSlayer', lives: 3, wipes: 2, highScore: 220, totalBurned: 20000 },
+            'DiamondRoller': { name: 'DiamondRoller', lives: 6, wipes: 5, highScore: 580, totalBurned: 50000 }
+        };
+
+        let currentActiveUser = 'TurdKing';
+        let selectedAdminUser = 'TurdKing';
+        let adminUnlocked = false;
+
+        function loadPersistentData() {
+            try {
+                const p = localStorage.getItem(STORAGE_KEY_PROFILES);
+                if (p) userProfiles = JSON.parse(p);
+                const c = localStorage.getItem(STORAGE_KEY_CONFIG);
+                if (c) gameConfig = Object.assign(gameConfig, JSON.parse(c));
+            } catch (err) {
+                console.error("Storage load error:", err);
+            }
+        }
+
+        function savePersistentData() {
+            try {
+                localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(userProfiles));
+                localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(gameConfig));
+            } catch (err) {
+                console.error("Storage save error:", err);
+            }
+        }
+
+        loadPersistentData();
+
+        /* ==========================================================
+           CANVAS & WORLD SETUP
+           ========================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let screenWidth = window.innerWidth;
+        let screenHeight = window.innerHeight;
+        const WORLD_SIZE = 3500;
+
+        const camera = { x: 0, y: 0, width: screenWidth, height: screenHeight };
+        let isRunning = false;
+        let isPaused = false;
+        let lastTime = 0;
+        let screenShake = 0;
+
+        /* ==========================================================
+           UPGRADES DEFINITION
+           ========================================================== */
+        const UPGRADES_DB = [
+            {
+                id: 'shards_dmg',
+                name: 'Ingot Infusion',
+                desc: '+25% Rainbow Shard Damage',
+                icon: '💎',
+                apply: (p) => { p.shardDamage *= 1.25; }
+            },
+            {
+                id: 'fire_rate',
+                name: 'Golden Gatling Shitter',
+                desc: '+20% Auto-firing projectile speed',
+                icon: '⚡',
+                apply: (p) => { p.shardCooldown = Math.max(80, p.shardCooldown * 0.8); }
+            },
+            {
+                id: 'orbiters',
+                name: 'Cronos Orbiters',
+                desc: 'Add +1 revolving celestial shield blade',
+                icon: '🪐',
+                apply: (p) => { 
+                    p.orbitersCount++; 
+                    document.getElementById('buff-orbiters').innerText = 'L' + p.orbitersCount;
+                }
+            },
+            {
+                id: 'stink_cloud',
+                name: 'Toxic Super Stench',
+                desc: 'Aura that continuously burns nearby mobs',
+                icon: '💨',
+                apply: (p) => { 
+                    p.stinkLevel++; 
+                    document.getElementById('buff-stink').innerText = 'L' + p.stinkLevel;
+                }
+            },
+            {
+                id: 'speed',
+                name: 'Air Jordan Boosters',
+                desc: '+15% Character Movement Speed',
+                icon: '👟',
+                apply: (p) => { p.speed *= 1.15; }
+            },
+            {
+                id: 'max_hp',
+                name: 'Diamond Hands Armor',
+                desc: '+40 Max HP & Full Immediate Heal',
+                icon: '🛡️',
+                apply: (p) => { p.maxHp += 40; p.hp = p.maxHp; }
+            }
+        ];
+
+        /* ==========================================================
+           TOILET PAPER ROLL (SOLID WIPE SCREEN CLEAR EFFECT)
+           ========================================================== */
+        class ToiletPaperRoll {
+            constructor(startY, speed) {
+                this.x = camera.x - 120;
+                this.y = startY;
+                this.speed = speed || gameConfig.toiletPaperRollSpeed;
+                this.rollRadius = 38;
+                this.rotation = 0;
+                this.active = true;
+                this.paperTrail = [];
+            }
+
+            update(dt) {
+                this.x += this.speed * dt;
+                this.rotation += dt * 14;
+
+                this.paperTrail.push({ x: this.x - this.rollRadius, y: this.y });
+                if (this.paperTrail.length > 30) this.paperTrail.shift();
+
+                enemies.forEach(e => {
+                    if (Math.abs(e.y - this.y) < 130 && Math.abs(e.x - this.x) < 90) {
+                        e.takeDamage(9999);
+                    }
+                });
+
+                pigeonPoos = pigeonPoos.filter(poo => Math.hypot(poo.x - this.x, poo.y - this.y) > 90);
+
+                if (this.x > camera.x + camera.width + 250) {
+                    this.active = false;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.fillStyle = '#f8fafc';
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(camera.x - 100, this.y - 32);
+                ctx.lineTo(this.x, this.y - 32);
+                ctx.lineTo(this.x, this.y + 32);
+                ctx.lineTo(camera.x - 100, this.y + 32);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 14;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.rollRadius, this.rollRadius * 0.85, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#b45309';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 12, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        let toiletPaperRolls = [];
+
+        function triggerSolidWipe() {
+            const profile = userProfiles[currentActiveUser];
+            if (!profile || profile.wipes <= 0) {
+                showToast("❌ NO SOLID WIPES REMAINING! Open Perks to Buy.");
+                return;
+            }
+
+            profile.wipes--;
+            savePersistentData();
+            updateProfileHUD();
+            audio.playToiletPaperWipe();
+            screenShake = 12;
+
+            const baseY = camera.y + camera.height * 0.2;
+            toiletPaperRolls.push(new ToiletPaperRoll(baseY, gameConfig.toiletPaperRollSpeed));
+            toiletPaperRolls.push(new ToiletPaperRoll(baseY + camera.height * 0.32, gameConfig.toiletPaperRollSpeed * 1.1));
+            toiletPaperRolls.push(new ToiletPaperRoll(baseY + camera.height * 0.64, gameConfig.toiletPaperRollSpeed * 0.95));
+
+            showToast("🧻 SOLID WIPE ACTIVE! Cleaning the Screen...");
+        }
+
+        /* ==========================================================
+           ENTITIES: HERO (ULTIMATE SUPER SHINY TURD & NFTS)
+           ========================================================== */
+        class Hero {
+            constructor(x, y, token) {
+                this.x = x;
+                this.y = y;
+                this.radius = 28;
+                this.speed = 225;
+                this.hp = 100;
+                this.maxHp = 100;
+                
+                this.level = 1;
+                this.xp = 0;
+                this.xpToNext = 70;
+                this.kills = 0;
+
+                this.token = token || SCARY_SHITZ_COLLECTION[0];
+                this.tokenBonuses = getBonusesForToken(this.token);
+
+                this.shardDamage = 35;
+                this.shardCooldown = gameConfig.playerFireRate;
+                this.lastShardTime = 0;
+                this.pickupRange = 135;
+
+                // Automatic Lvl 3 Items Bonus Check
+                if (this.tokenBonuses.has('automatic lvl 3 items')) {
+                    this.orbitersCount = 3;
+                    this.shardDamage = 55;
+                    this.shardCooldown = Math.max(120, this.shardCooldown * 0.7);
+                    this.stinkLevel = 1;
+                } else {
+                    this.orbitersCount = 1;
+                    this.stinkLevel = 0;
+                }
+
+                this.orbitAngle = 0;
+                this.lastStinkTick = 0;
+
+                this.bobTimer = 0;
+                this.facing = 1;
+                this.isMoving = false;
+            }
+
+            update(dt, inputVector) {
+                let vx = inputVector.x;
+                let vy = inputVector.y;
+                const mag = Math.hypot(vx, vy);
+                if (mag > 0) {
+                    this.x += (vx / mag) * this.speed * dt;
+                    this.y += (vy / mag) * this.speed * dt;
+                    this.facing = vx >= 0 ? 1 : -1;
+                    this.isMoving = true;
+                    this.bobTimer += dt * 10;
+                } else {
+                    this.isMoving = false;
+                    this.bobTimer += dt * 3;
+                }
+
+                this.x = Math.max(this.radius, Math.min(WORLD_SIZE - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(WORLD_SIZE - this.radius, this.y));
+
+                this.orbitAngle += dt * 3.8;
+
+                const now = performance.now();
+                if (now - this.lastShardTime >= this.shardCooldown) {
+                    this.fireNearestTarget();
+                    this.lastShardTime = now;
+                }
+
+                if (this.stinkLevel > 0 && now - this.lastStinkTick >= 1000) {
+                    this.pulseStink();
+                    this.lastStinkTick = now;
+                }
+            }
+
+            fireNearestTarget() {
+                let nearest = null;
+                let minDist = 480;
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    const dist = Math.hypot(e.x - this.x, e.y - this.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = e;
+                    }
+                }
+
+                if (nearest) {
+                    const angle = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+                    playerProjectiles.push(new Projectile(this.x, this.y - 8, angle, this.shardDamage));
+                    audio.playShoot();
+                }
+            }
+
+            pulseStink() {
+                const cloudRadius = 90 + this.stinkLevel * 28;
+                enemies.forEach(e => {
+                    if (Math.hypot(e.x - this.x, e.y - this.y) < cloudRadius) {
+                        e.takeDamage(16 * this.stinkLevel);
+                        spawnDamageNumber(e.x, e.y, 16 * this.stinkLevel, '#10b981');
+                    }
+                });
+            }
+
+            takeDamage(amt) {
+                this.hp -= amt;
+                spawnDamageNumber(this.x, this.y - 20, Math.round(amt), '#f43f5e');
+                audio.playHit();
+                screenShake = 6;
+
+                if (this.hp <= 0) {
+                    this.handleDeath();
+                }
+            }
+
+            handleDeath() {
+                const profile = userProfiles[currentActiveUser];
+                if (profile && profile.lives > 1) {
+                    profile.lives--;
+                    savePersistentData();
+                    updateProfileHUD();
+                    this.hp = this.maxHp;
+                    showToast(`⚠️ LIFE LOST! Remaining: ${profile.lives}`);
+                    enemies.forEach(e => {
+                        if (Math.hypot(e.x - this.x, e.y - this.y) < 320) {
+                            const angle = Math.atan2(e.y - this.y, e.x - this.x);
+                            e.x += Math.cos(angle) * 160;
+                            e.y += Math.sin(angle) * 160;
+                        }
+                    });
+                } else {
+                    if (profile) profile.lives = 0;
+                    this.hp = 0;
+                    endGame();
+                }
+            }
+
+            addXP(amt) {
+                this.xp += amt;
+                const profile = userProfiles[currentActiveUser];
+                if (profile) {
+                    profile.totalBurned = (profile.totalBurned || 0) + amt * 25;
+                    if (this.kills > profile.highScore) profile.highScore = this.kills;
+                }
+                savePersistentData();
+                audio.playXP();
+
+                if (this.xp >= this.xpToNext) {
+                    this.xp -= this.xpToNext;
+                    this.level++;
+                    this.xpToNext = Math.round(this.xpToNext * 1.35);
+                    triggerLevelUp();
+                }
+                updateHUD();
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const bob = Math.sin(this.bobTimer) * 4;
+                const squash = this.isMoving ? 1 + Math.sin(this.bobTimer * 2) * 0.05 : 1;
+                ctx.scale(this.facing * squash, 2 - squash);
+
+                ctx.beginPath();
+                ctx.ellipse(0, 24, 24, 8, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                ctx.fill();
+
+                const cachedImg = nftImageCache[this.token.id];
+                if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+                    ctx.save();
+                    ctx.translate(0, bob);
+                    const colors = getColorsForToken(this.token);
+                    ctx.shadowColor = colors.eyeGlow;
+                    ctx.shadowBlur = 12;
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(cachedImg, -26, -26, 52, 52);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.translate(0, -26 + bob);
+                    ctx.fillStyle = '#eab308';
+                    ctx.beginPath();
+                    ctx.moveTo(-12, 4); ctx.lineTo(-14, -8); ctx.lineTo(-6, -2); ctx.lineTo(0, -11); ctx.lineTo(6, -2); ctx.lineTo(14, -8); ctx.lineTo(12, 4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = '#78350f';
+                    ctx.stroke();
+                    ctx.restore();
+                } else {
+                    const colors = getColorsForToken(this.token);
+
+                    const grad = ctx.createLinearGradient(-26, -30, 26, 30);
+                    colors.mainGradients.forEach((col, idx) => {
+                        grad.addColorStop(idx / (colors.mainGradients.length - 1), col);
+                    });
+
+                    ctx.fillStyle = grad;
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = '#ffffff';
+
+                    ctx.beginPath();
+                    ctx.ellipse(0, 14 + bob, 25, 13, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0 + bob, 20, 11, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.ellipse(-1, -12 + bob, 13, 9, -0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.save();
+                    ctx.translate(0, 8 + bob);
+                    ctx.beginPath();
+                    ctx.roundRect(-22, -4, 44, 9, 4);
+                    ctx.fillStyle = colors.scarfColor;
+                    ctx.fill();
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = '#1e293b';
+                    ctx.stroke();
+
+                    ctx.strokeStyle = colors.scarfStripe;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-20, 0); ctx.lineTo(20, 0);
+                    ctx.stroke();
+                    ctx.fillStyle = colors.scarfColor;
+                    ctx.fillRect(8, 5, 8, 12);
+                    ctx.restore();
+
+                    const eyeY = 0 + bob;
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = colors.eyeGlow;
+                    ctx.shadowColor = colors.eyeGlow;
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#05070f';
+
+                    if (colors.eyeStyle === 'button') {
+                        ctx.beginPath(); ctx.arc(-8, eyeY, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(8, eyeY, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(-10, eyeY - 2); ctx.lineTo(-6, eyeY + 2);
+                        ctx.moveTo(-6, eyeY - 2); ctx.lineTo(-10, eyeY + 2);
+                        ctx.moveTo(6, eyeY - 2); ctx.lineTo(10, eyeY + 2);
+                        ctx.moveTo(10, eyeY - 2); ctx.lineTo(6, eyeY + 2);
+                        ctx.stroke();
+                    } else if (colors.eyeStyle === 'jack') {
+                        ctx.fillStyle = colors.eyeGlow;
+                        ctx.beginPath();
+                        ctx.moveTo(-11, eyeY + 3); ctx.lineTo(-5, eyeY + 3); ctx.lineTo(-8, eyeY - 4); ctx.closePath(); ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(5, eyeY + 3); ctx.lineTo(11, eyeY + 3); ctx.lineTo(8, eyeY - 4); ctx.closePath(); ctx.fill();
+                    } else {
+                        ctx.beginPath(); ctx.ellipse(-8, eyeY, 4.5, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.ellipse(8, eyeY, 4.5, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = colors.eyeStyle === 'cataract' ? '#ffffff' : (colors.eyeStyle === 'bloodshot' ? '#dc2626' : '#ffffff');
+                        ctx.beginPath(); ctx.arc(-8, eyeY - 1, 1.8, 0, Math.PI * 2); ctx.arc(8, eyeY - 1, 1.8, 0, Math.PI * 2); ctx.fill();
+                    }
+                    ctx.shadowBlur = 0;
+
+                    ctx.save();
+                    ctx.translate(0, -28 + bob);
+                    ctx.fillStyle = '#eab308';
+                    ctx.beginPath();
+                    ctx.moveTo(-12, 4); ctx.lineTo(-14, -8); ctx.lineTo(-6, -2); ctx.lineTo(0, -11); ctx.lineTo(6, -2); ctx.lineTo(14, -8); ctx.lineTo(12, 4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = '#78350f';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                ctx.restore();
+
+                if (this.orbitersCount > 0) {
+                    const dist = 65;
+                    for (let i = 0; i < this.orbitersCount; i++) {
+                        const ang = this.orbitAngle + (i * (Math.PI * 2 / this.orbitersCount));
+                        const ox = this.x + Math.cos(ang) * dist;
+                        const oy = this.y + Math.sin(ang) * dist;
+
+                        ctx.save();
+                        ctx.translate(ox, oy);
+                        ctx.rotate(ang + Math.PI / 2);
+                        ctx.shadowColor = '#00f0ff';
+                        ctx.shadowBlur = 10;
+                        ctx.fillStyle = '#0284c7';
+                        ctx.beginPath();
+                        ctx.moveTo(0, -14); ctx.lineTo(7, 6); ctx.lineTo(0, 11); ctx.lineTo(-7, 6);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+
+                        enemies.forEach(e => {
+                            if (Math.hypot(e.x - ox, e.y - oy) < (e.radius + 12)) {
+                                e.takeDamage(24);
+                                spawnDamageNumber(e.x, e.y, 24, '#38bdf8');
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        /* ==========================================================
+           PROJECTILES: PLAYER DIAMONDS & PIGEON GREY POOP
+           ========================================================== */
+        class Projectile {
+            constructor(x, y, angle, damage) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(angle) * 520;
+                this.vy = Math.sin(angle) * 520;
+                this.damage = damage;
+                this.radius = 6;
+                this.life = 1.4;
+            }
+
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= dt;
+
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    if (Math.hypot(e.x - this.x, e.y - this.y) < (e.radius + this.radius)) {
+                        e.takeDamage(this.damage);
+                        spawnDamageNumber(e.x, e.y, Math.round(this.damage), '#facc15');
+                        this.life = 0;
+                        break;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowColor = '#00f0ff';
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath();
+                ctx.moveTo(0, -8); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class PigeonPoop {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = 8;
+                this.life = 3.2;
+            }
+
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= dt;
+
+                if (Math.hypot(hero.x - this.x, hero.y - this.y) < (hero.radius + this.radius)) {
+                    hero.takeDamage(14);
+                    audio.playPooSplat();
+                    this.life = 0;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f1f5f9';
+                ctx.beginPath();
+                ctx.arc(-2, -2, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        let playerProjectiles = [];
+        let pigeonPoos = [];
+
+        /* ==========================================================
+           ENEMIES (SCALED FOR LEVEL 19+ DYNAMIC DIFFICULTY)
+           ========================================================== */
+        class Enemy {
+            constructor(x, y, type, isElite = false) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = 18;
+                this.speed = 100;
+                this.hp = 30 * gameConfig.mobHpMultiplier;
+                this.maxHp = this.hp;
+                this.damage = 10;
+                this.attackCooldown = 0;
+                this.poopTimer = Math.random() * gameConfig.pigeonAttackInterval;
+                this.flapTimer = 0;
+                this.isElite = isElite;
+                this.eliteDashTimer = 3.5;
+                this.isDashing = false;
+
+                this.setupAttributes();
+            }
+
+            setupAttributes() {
+                const levelScale = 1 + Math.max(0, (hero.level - 12) * 0.12);
+
+                if (this.type === 'candle') {
+                    this.radius = 14;
+                    this.speed = 175 * (hero.level >= 19 ? 1.25 : 1);
+                    this.hp = 25 * gameConfig.mobHpMultiplier * levelScale;
+                    this.damage = 8 * levelScale;
+                } else if (this.type === 'tracksuit') {
+                    this.radius = 18;
+                    this.speed = 135 * (hero.level >= 19 ? 1.2 : 1);
+                    this.hp = 55 * gameConfig.mobHpMultiplier * levelScale;
+                    this.damage = 15 * levelScale;
+                } else if (this.type === 'pigeon') {
+                    this.radius = 16;
+                    this.speed = 85;
+                    this.hp = 40 * gameConfig.mobHpMultiplier * levelScale;
+                    this.damage = 10 * levelScale;
+                } else if (this.type === 'whale') {
+                    this.radius = 45;
+                    this.speed = 55;
+                    this.hp = 850 * gameConfig.mobHpMultiplier * levelScale;
+                    this.maxHp = this.hp;
+                    this.damage = 30 * levelScale;
+                } else if (this.type === 'elite') {
+                    this.radius = 32;
+                    this.speed = 120;
+                    this.hp = 350 * gameConfig.mobHpMultiplier * levelScale;
+                    this.maxHp = this.hp;
+                    this.damage = 25 * levelScale;
+                }
+            }
+
+            takeDamage(amt) {
+                this.hp -= amt;
+                if (this.hp <= 0) this.die();
+            }
+
+            die() {
+                hero.kills++;
+                const count = this.type === 'whale' ? 14 : (this.type === 'elite' ? 8 : (this.type === 'pigeon' ? 3 : 1));
+                for (let i = 0; i < count; i++) {
+                    gems.push(new Gem(this.x + (Math.random() - 0.5) * 20, this.y + (Math.random() - 0.5) * 20, this.type === 'whale' ? 35 : (this.type === 'elite' ? 25 : 10)));
+                }
+            }
+
+            update(dt) {
+                const dist = Math.hypot(hero.x - this.x, hero.y - this.y);
+                const angle = Math.atan2(hero.y - this.y, hero.x - this.x);
+
+                if (this.attackCooldown > 0) this.attackCooldown -= dt;
+
+                if (this.type === 'elite') {
+                    this.eliteDashTimer -= dt;
+                    if (this.eliteDashTimer <= 0.6 && this.eliteDashTimer > 0) {
+                        this.telegraphing = true;
+                    } else if (this.eliteDashTimer <= 0) {
+                        this.telegraphing = false;
+                        this.isDashing = true;
+                        this.speed = 340;
+                        setTimeout(() => {
+                            this.speed = 120;
+                            this.isDashing = false;
+                            this.eliteDashTimer = 4.0;
+                        }, 500);
+                    }
+                    this.x += Math.cos(angle) * this.speed * dt;
+                    this.y += Math.sin(angle) * this.speed * dt;
+                }
+                else if (this.type === 'pigeon') {
+                    this.flapTimer += dt * 8;
+                    const preferredDist = hero.level >= 19 ? 180 : 240;
+                    if (dist > preferredDist) {
+                        this.x += Math.cos(angle) * this.speed * dt;
+                        this.y += Math.sin(angle) * this.speed * dt;
+                    } else if (dist < preferredDist - 70) {
+                        this.x -= Math.cos(angle) * this.speed * dt;
+                        this.y -= Math.sin(angle) * this.speed * dt;
+                    }
+
+                    this.poopTimer -= dt;
+                    if (this.poopTimer <= 0) {
+                        const interval = hero.level >= 19 ? gameConfig.pigeonAttackInterval * 0.6 : gameConfig.pigeonAttackInterval;
+                        this.poopTimer = interval;
+                        const spd = hero.level >= 19 ? 220 : 165;
+                        pigeonPoos.push(new PigeonPoop(this.x, this.y, Math.cos(angle) * spd, Math.sin(angle) * spd));
+                        if (hero.level >= 19) {
+                            pigeonPoos.push(new PigeonPoop(this.x, this.y, Math.cos(angle + 0.25) * spd, Math.sin(angle + 0.25) * spd));
+                        }
+                        audio.playPooSplat();
+                    }
+                } else {
+                    this.x += Math.cos(angle) * this.speed * dt;
+                    this.y += Math.sin(angle) * this.speed * dt;
+                }
+
+                if (dist < (this.radius + hero.radius) && this.attackCooldown <= 0) {
+                    hero.takeDamage(this.damage);
+                    this.attackCooldown = 0.8;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (this.telegraphing) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                if (this.type === 'pigeon') {
+                    const flap = Math.sin(this.flapTimer) * 4;
+                    ctx.font = '26px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🐦', 0, flap);
+                } 
+                else if (this.type === 'elite') {
+                    ctx.fillStyle = '#dc2626';
+                    ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.stroke();
+                    ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('👹', 0, 0);
+                    ctx.fillStyle = '#0f172a'; ctx.fillRect(-24, -34, 48, 5);
+                    ctx.fillStyle = '#ef4444'; ctx.fillRect(-24, -34, 48 * Math.max(0, this.hp / this.maxHp), 5);
+                }
+                else if (this.type === 'candle') {
+                    ctx.strokeStyle = '#f87171'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(0, 16); ctx.stroke();
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(-6, -10, 12, 20);
+                } 
+                else if (this.type === 'tracksuit') {
+                    ctx.fillStyle = '#0284c7';
+                    ctx.beginPath(); ctx.roundRect(-10, -6, 20, 18, 4); ctx.fill();
+                    ctx.fillStyle = '#0369a1';
+                    ctx.beginPath(); ctx.arc(0, -12, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.beginPath(); ctx.moveTo(11, 2); ctx.lineTo(16, -6); ctx.lineTo(14, 4); ctx.closePath(); ctx.fill();
+                } 
+                else if (this.type === 'whale') {
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 42, 28, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3; ctx.stroke();
+                    ctx.fillStyle = '#facc15'; ctx.fillRect(-12, -32, 24, 8);
+                    ctx.fillStyle = '#0f172a'; ctx.fillRect(-35, -42, 70, 7);
+                    ctx.fillStyle = '#22c55e'; ctx.fillRect(-35, -42, 70 * Math.max(0, this.hp / this.maxHp), 7);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        /* ==========================================================
+           GAME ENGINE STATE, HORDE SURGES & SPAWNER
+           ========================================================== */
+        let matchTimer = 0;
+        let lastWaveSpawn = 0;
+        let lastSurgeTimer = 0;
+        let surgeActive = false;
+        let hero = new Hero(WORLD_SIZE / 2, WORLD_SIZE / 2, SCARY_SHITZ_COLLECTION[0]);
+        let enemies = [];
+        let gems = [];
+
+        function spawnEnemyWave() {
+            const baseCount = 2 + Math.floor(matchTimer / 20) + (hero.level >= 19 ? 5 : 0);
+            const count = Math.min(baseCount, 16);
+
+            for (let i = 0; i < count; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const dist = Math.max(camera.width, camera.height) * 0.6 + 60;
+                const ex = hero.x + Math.cos(ang) * dist;
+                const ey = hero.y + Math.sin(ang) * dist;
+
+                let type = 'candle';
+                const roll = Math.random();
+                if (matchTimer > 180 && roll < 0.15) type = 'whale';
+                else if (hero.level >= 15 && roll < 0.2) type = 'elite';
+                else if (matchTimer > 20 && roll < 0.5) type = 'pigeon';
+                else if (matchTimer > 40 && roll < 0.8) type = 'tracksuit';
+
+                enemies.push(new Enemy(ex, ey, type));
+            }
+        }
+
+        function checkHordeSurge() {
+            if (matchTimer - lastSurgeTimer >= 60 && hero.level >= 10) {
+                lastSurgeTimer = matchTimer;
+                surgeActive = true;
+                showToast("🚨 WARNING: 60-SEC HORDE SURGE! INCOMING PAPER HANDS!");
+                screenShake = 10;
+                
+                for (let i = 0; i < 4; i++) {
+                    const ang = (i * Math.PI / 2);
+                    const dist = 550;
+                    enemies.push(new Enemy(hero.x + Math.cos(ang) * dist, hero.y + Math.sin(ang) * dist, hero.level >= 19 ? 'elite' : 'tracksuit'));
+                }
+
+                setTimeout(() => { surgeActive = false; }, 10000);
+            }
+        }
+
+        const damageNumbers = [];
+        function spawnDamageNumber(x, y, text, color) {
+            damageNumbers.push({ x, y, text, color, life: 0.7, vy: -45 });
+        }
+
+        /* ==========================================================
+           GEM CLASS (XP DROPS)
+           ========================================================== */
+        class Gem {
+            constructor(x, y, value) {
+                this.x = x;
+                this.y = y;
+                this.value = value;
+                this.radius = 5;
+                this.collected = false;
+            }
+
+            update(dt) {
+                const dist = Math.hypot(hero.x - this.x, hero.y - this.y);
+                if (dist < hero.pickupRange) {
+                    const angle = Math.atan2(hero.y - this.y, hero.x - this.x);
+                    const pullSpeed = 420;
+                    this.x += Math.cos(angle) * pullSpeed * dt;
+                    this.y += Math.sin(angle) * pullSpeed * dt;
+
+                    if (dist < (hero.radius + this.radius)) {
+                        this.collected = true;
+                        hero.addXP(this.value);
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.value > 20 ? '#facc15' : '#22c55e';
+                ctx.beginPath();
+                ctx.moveTo(0, -6);
+                ctx.lineTo(5, 0);
+                ctx.lineTo(0, 6);
+                ctx.lineTo(-5, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        /* ==========================================================
+           CONTROLS (KEYBOARD & TOUCH JOYSTICK)
+           ========================================================== */
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; audio.init(); });
+        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+        let touchActive = false;
+        let touchStartX = 0, touchStartY = 0, touchCurX = 0, touchCurY = 0;
+        const joyBase = document.getElementById('joystick-base');
+        const joyThumb = document.getElementById('joystick-thumb');
+
+        window.addEventListener('touchstart', (e) => {
+            audio.init();
+            if (e.target.closest('button') || e.target.closest('.glass-panel') || isPaused || !isRunning) return;
+            const t = e.touches[0];
+            touchActive = true;
+            touchStartX = t.clientX; touchStartY = t.clientY;
+            touchCurX = t.clientX; touchCurY = t.clientY;
+            joyBase.style.display = 'block'; joyThumb.style.display = 'block';
+            joyBase.style.left = touchStartX + 'px'; joyBase.style.top = touchStartY + 'px';
+            joyThumb.style.left = touchStartX + 'px'; joyThumb.style.top = touchStartY + 'px';
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!touchActive) return;
+            const t = e.touches[0];
+            touchCurX = t.clientX; touchCurY = t.clientY;
+            const dx = touchCurX - touchStartX;
+            const dy = touchCurY - touchStartY;
+            const dist = Math.hypot(dx, dy);
+            const max = 50;
+            if (dist > max) {
+                joyThumb.style.left = (touchStartX + (dx / dist) * max) + 'px';
+                joyThumb.style.top = (touchStartY + (dy / dist) * max) + 'px';
+            } else {
+                joyThumb.style.left = touchCurX + 'px';
+                joyThumb.style.top = touchCurY + 'px';
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            touchActive = false;
+            joyBase.style.display = 'none'; joyThumb.style.display = 'none';
+        });
+
+        function getInputVector() {
+            let vx = 0, vy = 0;
+            if (keys['w'] || keys['arrowup']) vy -= 1;
+            if (keys['s'] || keys['arrowdown']) vy += 1;
+            if (keys['a'] || keys['arrowleft']) vx -= 1;
+            if (keys['d'] || keys['arrowright']) vx += 1;
+            if (touchActive) {
+                const dx = touchCurX - touchStartX;
+                const dy = touchCurY - touchStartY;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 8) { vx = dx / dist; vy = dy / dist; }
+            }
+            return { x: vx, y: vy };
+        }
+
+        /* ==========================================================
+           MAIN LOOP
+           ========================================================== */
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+
+            if (isRunning && !isPaused) {
+                update(dt);
+            }
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            matchTimer += dt;
+            const effectiveSpawnRate = hero.level >= 19 ? gameConfig.spawnRate * 0.75 : gameConfig.spawnRate;
+            if (matchTimer - lastWaveSpawn >= effectiveSpawnRate) {
+                spawnEnemyWave();
+                lastWaveSpawn = matchTimer;
+            }
+
+            checkHordeSurge();
+
+            hero.update(dt, getInputVector());
+
+            for (let i = toiletPaperRolls.length - 1; i >= 0; i--) {
+                const roll = toiletPaperRolls[i];
+                roll.update(dt);
+                if (!roll.active) toiletPaperRolls.splice(i, 1);
+            }
+
+            for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+                const p = playerProjectiles[i];
+                p.update(dt);
+                if (p.life <= 0) playerProjectiles.splice(i, 1);
+            }
+
+            for (let i = pigeonPoos.length - 1; i >= 0; i--) {
+                const poo = pigeonPoos[i];
+                poo.update(dt);
+                if (poo.life <= 0) pigeonPoos.splice(i, 1);
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                e.update(dt);
+                if (e.hp <= 0) enemies.splice(i, 1);
+            }
+
+            for (let i = gems.length - 1; i >= 0; i--) {
+                const g = gems[i];
+                g.update(dt);
+                if (g.collected) gems.splice(i, 1);
+            }
+
+            for (let i = damageNumbers.length - 1; i >= 0; i--) {
+                const dn = damageNumbers[i];
+                dn.y += dn.vy * dt;
+                dn.life -= dt;
+                if (dn.life <= 0) damageNumbers.splice(i, 1);
+            }
+
+            if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 20);
+
+            camera.x = hero.x - camera.width / 2;
+            camera.y = hero.y - camera.height / 2;
+            updateHUD();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, screenWidth, screenHeight);
+
+            ctx.save();
+            const sx = (Math.random() - 0.5) * screenShake;
+            const sy = (Math.random() - 0.5) * screenShake;
+            ctx.translate(-camera.x + sx, -camera.y + sy);
+
+            const grid = 80;
+            const startX = Math.floor(camera.x / grid) * grid;
+            const startY = Math.floor(camera.y / grid) * grid;
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = startX; x <= camera.x + camera.width + grid; x += grid) {
+                ctx.moveTo(x, startY); ctx.lineTo(x, camera.y + camera.height + grid);
+            }
+            for (let y = startY; y <= camera.y + camera.height + grid; y += grid) {
+                ctx.moveTo(startX, y); ctx.lineTo(camera.x + camera.width + grid, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            gems.forEach(g => g.draw(ctx));
+            enemies.forEach(e => e.draw(ctx));
+            hero.draw(ctx);
+            playerProjectiles.forEach(p => p.draw(ctx));
+            pigeonPoos.forEach(poo => poo.draw(ctx));
+            toiletPaperRolls.forEach(r => r.draw(ctx));
+
+            damageNumbers.forEach(dn => {
+                ctx.font = 'bold 13px "Chakra Petch", sans-serif';
+                ctx.fillStyle = dn.color;
+                ctx.globalAlpha = Math.max(0, dn.life);
+                ctx.fillText(dn.text, dn.x, dn.y);
+            });
+
+            ctx.restore();
+        }
+
+        /* ==========================================================
+           UI & HUD SYNCHRONIZATION
+           ========================================================== */
+        function updateProfileHUD() {
+            const profile = userProfiles[currentActiveUser] || { name: 'Player', lives: 3, wipes: 3, totalBurned: 0 };
+            document.getElementById('hud-player-name').innerText = profile.name;
+            document.getElementById('hud-lives').innerText = profile.lives;
+            document.getElementById('hud-wipe-count').innerText = profile.wipes;
+            document.getElementById('hud-burned-sum').innerText = (profile.totalBurned / 1000).toFixed(0) + 'k USST';
+        }
+
+        function updateHUD() {
+            const mins = Math.floor(matchTimer / 60);
+            const secs = Math.floor(matchTimer % 60);
+            document.getElementById('hud-timer').innerText = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            document.getElementById('hud-level').innerText = hero.level;
+            document.getElementById('hud-xp-label').innerText = `${Math.round(hero.xp)}/${hero.xpToNext} XP`;
+            document.getElementById('hud-xp-bar').style.width = Math.min(100, (hero.xp / hero.xpToNext) * 100) + '%';
+            document.getElementById('hud-hp-text').innerText = `${Math.max(0, Math.round(hero.hp))}/${hero.maxHp}`;
+
+            const waveLabel = document.getElementById('hud-wave');
+            if (matchTimer < 30) waveLabel.innerText = 'Wave 1: Paper Hands';
+            else if (matchTimer < 90) waveLabel.innerText = 'Wave 2: Pigeons (🐦) Incoming!';
+            else if (matchTimer < 180) waveLabel.innerText = 'Wave 3: Knife Tracksuits';
+            else waveLabel.innerText = 'Wave 4: MEGA WHALE BOSS';
+        }
+
+        function triggerLevelUp() {
+            isPaused = true;
+            document.getElementById('modal-lvl-number').innerText = 'LVL ' + hero.level;
+            const shuffled = [...UPGRADES_DB].sort(() => 0.5 - Math.random());
+            const cards = shuffled.slice(0, 3);
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            cards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'glass-panel p-4 rounded-2xl flex flex-col items-center text-center cursor-pointer hover:border-cyan-400 hover:scale-105 transition transform border border-slate-700';
+                div.innerHTML = `
+                    <div class="text-3xl mb-2">${card.icon}</div>
+                    <h4 class="font-cyber font-bold text-white text-sm">${card.name}</h4>
+                    <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">${card.desc}</p>
+                    <button class="mt-3 w-full py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase">SELECT</button>
+                `;
+                div.onclick = () => {
+                    card.apply(hero);
+                    document.getElementById('modal-levelup').classList.add('hidden');
+                    isPaused = false;
+                    showToast(`⚡ Equipped: ${card.name}`);
+                };
+                container.appendChild(div);
+            });
+
+            document.getElementById('modal-levelup').classList.remove('hidden');
+        }
+
+        function endGame() {
+            isPaused = true;
+            isRunning = false;
+            const mins = Math.floor(matchTimer / 60);
+            const secs = Math.floor(matchTimer % 60);
+            document.getElementById('final-time').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            let finalKills = hero.kills;
+            if (hero.tokenBonuses.has('5% points bonus')) {
+                finalKills = Math.round(finalKills * 1.05);
+            }
+            document.getElementById('final-kills').innerText = finalKills + (hero.tokenBonuses.has('5% points bonus') ? ' (+5% NFT Boost)' : '');
+            
+            const profile = userProfiles[currentActiveUser];
+            document.getElementById('final-burned').innerText = (profile ? profile.totalBurned : 0).toLocaleString() + ' USST';
+            document.getElementById('modal-gameover').classList.remove('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-16px)';
+            }, 2500);
+        }
+
+        /* ==========================================================
+           CHARACTER SELECT CAROUSEL & PREVIEW RENDERER
+           ========================================================== */
+        const charPreviewCanvas = document.getElementById('charPreviewCanvas');
+        const previewCtx = charPreviewCanvas.getContext('2d');
+        const charPreviewImg = document.getElementById('charPreviewImg');
+        const badgeOwned = document.getElementById('nft-badge-owned');
+
+        function renderCharacterPreview(token) {
+            const isOwned = userOwnedTokenIds.includes(token.id);
+            if (badgeOwned) {
+                if (isOwned) {
+                    badgeOwned.className = 'absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-emerald-500/80 text-white text-[8px] font-bold font-mono';
+                    badgeOwned.innerText = 'OWNED';
+                } else {
+                    badgeOwned.className = 'absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-700/80 text-slate-400 text-[8px] font-bold font-mono';
+                    badgeOwned.innerText = 'LOCKED';
+                }
+            }
+
+            const cachedImg = nftImageCache[token.id];
+            if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+                charPreviewImg.src = cachedImg.src;
+                charPreviewImg.classList.remove('hidden');
+                charPreviewCanvas.classList.add('hidden');
+            } else {
+                charPreviewImg.classList.add('hidden');
+                charPreviewCanvas.classList.remove('hidden');
+
+                previewCtx.clearRect(0, 0, 96, 96);
+                const colors = getColorsForToken(token);
+
+                previewCtx.save();
+                previewCtx.translate(48, 56);
+                previewCtx.scale(0.95, 0.95);
+
+                const grad = previewCtx.createLinearGradient(-22, -22, 22, 22);
+                colors.mainGradients.forEach((col, idx) => {
+                    grad.addColorStop(idx / (colors.mainGradients.length - 1), col);
+                });
+                previewCtx.fillStyle = grad;
+                previewCtx.strokeStyle = '#ffffff';
+                previewCtx.lineWidth = 1.2;
+
+                previewCtx.beginPath(); previewCtx.ellipse(0, 10, 20, 10, 0, 0, Math.PI * 2); previewCtx.fill(); previewCtx.stroke();
+                previewCtx.beginPath(); previewCtx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2); previewCtx.fill(); previewCtx.stroke();
+                previewCtx.beginPath(); previewCtx.ellipse(-1, -8, 10, 7, 0, 0, Math.PI * 2); previewCtx.fill(); previewCtx.stroke();
+
+                previewCtx.fillStyle = colors.scarfColor;
+                previewCtx.fillRect(-16, 4, 32, 7);
+
+                previewCtx.fillStyle = colors.eyeGlow;
+                previewCtx.beginPath(); previewCtx.arc(-6, 0, 3, 0, Math.PI * 2); previewCtx.arc(6, 0, 3, 0, Math.PI * 2); previewCtx.fill();
+
+                previewCtx.fillStyle = '#eab308';
+                previewCtx.beginPath();
+                previewCtx.moveTo(-10, -18); previewCtx.lineTo(-12, -25); previewCtx.lineTo(-5, -21); previewCtx.lineTo(0, -28); previewCtx.lineTo(5, -21); previewCtx.lineTo(12, -25); previewCtx.lineTo(10, -18);
+                previewCtx.closePath(); previewCtx.fill();
+
+                previewCtx.restore();
+            }
+
+            document.getElementById('char-select-token-name').innerText = token.name;
+            document.getElementById('trait-val-eyes').innerText = token.traits['Eyes'];
+            document.getElementById('trait-val-scarf').innerText = token.traits['Scarf Color'];
+            document.getElementById('trait-val-color').innerText = token.traits['Main Color'];
+            document.getElementById('trait-val-bg').innerText = token.traits['Background'];
+
+            const bonuses = getBonusesForToken(token);
+            const badgeContainer = document.getElementById('char-bonus-badges');
+            badgeContainer.innerHTML = '';
+            if (bonuses.size === 0) {
+                badgeContainer.innerHTML = '<span class="text-[9px] text-slate-500 font-mono italic">No trait bonuses active on this NFT</span>';
+            } else {
+                bonuses.forEach(b => {
+                    const badge = document.createElement('span');
+                    badge.className = 'px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[9px] border border-amber-500/40';
+                    badge.innerText = '⚡ ' + b;
+                    badgeContainer.appendChild(badge);
+                });
+            }
+        }
+
+        function getVisibleCollection() {
+            if (!showOnlyOwnedNfts) return SCARY_SHITZ_COLLECTION;
+            const filtered = SCARY_SHITZ_COLLECTION.filter(t => userOwnedTokenIds.includes(t.id));
+            return filtered.length > 0 ? filtered : SCARY_SHITZ_COLLECTION;
+        }
+
+        document.getElementById('btn-char-prev').addEventListener('click', () => {
+            const coll = getVisibleCollection();
+            const currentToken = SCARY_SHITZ_COLLECTION[selectedNftIndex];
+            let idx = coll.findIndex(t => t.id === currentToken.id);
+            if (idx === -1) idx = 0;
+            idx = (idx - 1 + coll.length) % coll.length;
+            selectedNftIndex = coll[idx].id;
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+        });
+
+        document.getElementById('btn-char-next').addEventListener('click', () => {
+            const coll = getVisibleCollection();
+            const currentToken = SCARY_SHITZ_COLLECTION[selectedNftIndex];
+            let idx = coll.findIndex(t => t.id === currentToken.id);
+            if (idx === -1) idx = 0;
+            idx = (idx + 1) % coll.length;
+            selectedNftIndex = coll[idx].id;
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+        });
+
+        const btnConnect = document.getElementById('btn-connect-wallet');
+        btnConnect.addEventListener('click', () => {
+            audio.playCoin();
+            if (!connectedWallet) {
+                connectedWallet = "0x3E19...8414";
+                btnConnect.innerText = "🦊 0x3E19...8414";
+                btnConnect.className = "px-2 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] transition";
+                showToast("Connected to Cronos DeFi Wallet! Loaded your Scary Shitz mints.");
+            } else {
+                connectedWallet = null;
+                btnConnect.innerText = "🦊 Connect Wallet";
+                btnConnect.className = "px-2 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-[10px] transition";
+                showToast("Wallet disconnected.");
+            }
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+        });
+
+        const btnToggleAll = document.getElementById('btn-toggle-all-nfts');
+        btnToggleAll.addEventListener('click', () => {
+            showOnlyOwnedNfts = !showOnlyOwnedNfts;
+            btnToggleAll.innerText = showOnlyOwnedNfts ? "Show Owned Only" : "Show All (Demo)";
+            btnToggleAll.className = showOnlyOwnedNfts 
+                ? "px-2 py-1 rounded-lg bg-cyan-700 text-white text-[9px] font-bold" 
+                : "px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[9px] hover:text-white";
+            
+            const coll = getVisibleCollection();
+            selectedNftIndex = coll[0].id;
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+            showToast(showOnlyOwnedNfts ? "Filtering to your wallet's NFT inventory" : "Showing all 69 Scary Shitz");
+        });
+
+        const inputNftFolder = document.getElementById('input-nft-folder');
+        if (inputNftFolder) {
+            inputNftFolder.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files);
+                if (!files.length) return;
+
+                let loadedCount = 0;
+                const cacheToStore = {};
+
+                for (const file of files) {
+                    const match = file.name.match(/(\d+)\.(png|jpg|jpeg|webp)/i);
+                    if (match) {
+                        const id = parseInt(match[1]);
+                        if (id >= 0 && id <= 69) {
+                            const dataUrl = await new Promise(res => {
+                                const reader = new FileReader();
+                                reader.onload = () => res(reader.result);
+                                reader.readAsDataURL(file);
+                            });
+                            
+                            const img = new Image();
+                            img.src = dataUrl;
+                            nftImageCache[id] = img;
+                            cacheToStore[id] = dataUrl;
+                            loadedCount++;
+                        }
+                    }
+                }
+
+                try {
+                    const existing = JSON.parse(localStorage.getItem(STORAGE_KEY_IMAGE_CACHE) || '{}');
+                    Object.assign(existing, cacheToStore);
+                    localStorage.setItem(STORAGE_KEY_IMAGE_CACHE, JSON.stringify(existing));
+                } catch (err) {
+                    console.warn("Storage quota exceeded for local base64 cache, in-memory cache active:", err);
+                }
+
+                updateCachedCountLabel();
+                renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+                showToast(`✅ Successfully loaded & cached ${loadedCount} authentic NFT images!`);
+            });
+        }
+
+        const btnClearCache = document.getElementById('btn-clear-nft-cache');
+        if (btnClearCache) {
+            btnClearCache.addEventListener('click', () => {
+                Object.keys(nftImageCache).forEach(k => delete nftImageCache[k]);
+                localStorage.removeItem(STORAGE_KEY_IMAGE_CACHE);
+                updateCachedCountLabel();
+                renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+                showToast("🗑️ NFT image cache cleared.");
+            });
+        }
+
+        window.toggleTraitBonus = function(traitName, bonusType, isChecked) {
+            if (!nftTraitBonusRules[traitName]) nftTraitBonusRules[traitName] = [];
+            if (isChecked) {
+                if (!nftTraitBonusRules[traitName].includes(bonusType)) {
+                    nftTraitBonusRules[traitName].push(bonusType);
+                }
+            } else {
+                nftTraitBonusRules[traitName] = nftTraitBonusRules[traitName].filter(b => b !== bonusType);
+            }
+            saveNftRules();
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+            showToast(`⚙️ Updated rule for ${traitName}`);
+        };
+
+        function renderNftAdminTraitList() {
+            const container = document.getElementById('nft-traits-admin-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const allBonuses = ['5% points bonus', '3 free wipes', 'automatic lvl 3 items', '3 free lives'];
+
+            Object.entries(SCARY_SHITZ_TRAIT_OPTIONS).forEach(([cat, traits]) => {
+                const header = document.createElement('div');
+                header.className = 'text-[11px] font-bold text-cyan-300 uppercase tracking-wider mt-2 border-b border-slate-800 pb-1';
+                header.innerText = cat;
+                container.appendChild(header);
+
+                traits.forEach(trait => {
+                    const row = document.createElement('div');
+                    row.className = 'p-2 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2';
+
+                    let checkboxesHtml = allBonuses.map(b => {
+                        const checked = (nftTraitBonusRules[trait] || []).includes(b);
+                        const labelShort = b.replace(' points bonus', ' Pts').replace('free ', '').replace('automatic ', '');
+                        return `
+                            <label class="flex items-center gap-1 cursor-pointer text-[10px] bg-slate-950 px-2 py-1 rounded border border-slate-800 hover:border-slate-700">
+                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleTraitBonus('${trait.replace(/'/g, "\\'")}', '${b}', this.checked)" class="accent-amber-400 rounded" />
+                                <span>${labelShort}</span>
+                            </label>
+                        `;
+                    }).join('');
+
+                    row.innerHTML = `
+                        <span class="font-bold text-slate-200 text-xs">${trait}</span>
+                        <div class="flex flex-wrap gap-1">${checkboxesHtml}</div>
+                    `;
+                    container.appendChild(row);
+                });
+            });
+        }
+
+        document.getElementById('btn-reset-nft-rules').addEventListener('click', () => {
+            nftTraitBonusRules = {
+                'Cursed Button Stitch': ['5% points bonus'],
+                'Rotting Mummy Gauze': ['3 free wipes'],
+                'Pumpkin Patchwork': ['automatic lvl 3 items'],
+                'Blood Moon Graveyard': ['3 free lives'],
+                'Bloodshot Ghoul': ['5% points bonus'],
+                'Toxic Slime Knit': ['3 free wipes'],
+                'Charred Obsidian': ['automatic lvl 3 items'],
+                'Abyssal Void': ['3 free lives']
+            };
+            saveNftRules();
+            renderNftAdminTraitList();
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
+            showToast("NFT rules reset to defaults!");
+        });
+
+        // Admin Auth Elements
+        const modalAdmin = document.getElementById('modal-admin');
+        const authView = document.getElementById('admin-auth-view');
+        const workView = document.getElementById('admin-workspace-view');
+        const btnOpenAdmin = document.getElementById('btn-open-admin');
+        const btnStartAdmin = document.getElementById('btn-start-admin');
+
+        function checkAdminAccessUrl() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('admin') === 'true' || params.get('admin') === ADMIN_MASTER_PASS) {
+                revealAdminButtons();
+            }
+        }
+
+        function revealAdminButtons() {
+            if (btnOpenAdmin) {
+                btnOpenAdmin.classList.remove('hidden');
+                btnOpenAdmin.classList.add('flex');
+            }
+            if (btnStartAdmin) {
+                btnStartAdmin.classList.remove('hidden');
+                btnStartAdmin.classList.add('flex');
+            }
+            showToast("🔑 Admin Access Enabled");
+        }
+
+        let typedSecretBuffer = "";
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+                e.preventDefault();
+                revealAdminButtons();
+                modalAdmin.classList.remove('hidden');
+                modalAdmin.classList.add('flex');
+                isPaused = true;
+                return;
+            }
+
+            if (e.key.length === 1) {
+                typedSecretBuffer += e.key.toLowerCase();
+                if (typedSecretBuffer.length > 20) {
+                    typedSecretBuffer = typedSecretBuffer.slice(-20);
+                }
+                if (typedSecretBuffer.endsWith('usstadmin')) {
+                    revealAdminButtons();
+                    modalAdmin.classList.remove('hidden');
+                    modalAdmin.classList.add('flex');
+                    isPaused = true;
+                }
+            }
+        });
+
+        let secretTapCount = 0;
+        let lastTapTime = 0;
+        const titleEl = document.querySelector('#modal-start h1');
+        if (titleEl) {
+            titleEl.addEventListener('click', () => {
+                const now = Date.now();
+                if (now - lastTapTime < 500) {
+                    secretTapCount++;
+                    if (secretTapCount >= 5) {
+                        revealAdminButtons();
+                        modalAdmin.classList.remove('hidden');
+                        modalAdmin.classList.add('flex');
+                        secretTapCount = 0;
+                    }
+                } else {
+                    secretTapCount = 1;
+                }
+                lastTapTime = now;
+            });
+        }
+
+        function setAdminTab(tabName) {
+            const tabs = ['users', 'nft', 'tuning', 'vault'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (btn && content) {
+                    if (t === tabName) {
+                        btn.className = "px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold";
+                        content.classList.remove('hidden');
+                        content.classList.add('flex');
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white";
+                        content.classList.add('hidden');
+                        content.classList.remove('flex');
+                    }
+                }
+            });
+            if (tabName === 'nft') {
+                renderNftAdminTraitList();
+                updateCachedCountLabel();
+            }
+        }
+
+        document.getElementById('tab-btn-users').addEventListener('click', () => setAdminTab('users'));
+        document.getElementById('tab-btn-nft').addEventListener('click', () => setAdminTab('nft'));
+        document.getElementById('tab-btn-tuning').addEventListener('click', () => setAdminTab('tuning'));
+        document.getElementById('tab-btn-vault').addEventListener('click', () => setAdminTab('vault'));
+
+        document.getElementById('btn-open-admin').addEventListener('click', () => {
+            modalAdmin.classList.remove('hidden');
+            modalAdmin.classList.add('flex');
+            isPaused = true;
+            if (adminUnlocked) refreshAdminTables();
+        });
+
+        document.getElementById('btn-start-admin').addEventListener('click', () => {
+            modalAdmin.classList.remove('hidden');
+            modalAdmin.classList.add('flex');
+            if (adminUnlocked) refreshAdminTables();
+        });
+
+        document.getElementById('btn-close-admin').addEventListener('click', () => {
+            modalAdmin.classList.add('hidden');
+            modalAdmin.classList.remove('flex');
+            if (isRunning) isPaused = false;
+        });
+
+        document.getElementById('btn-auth-admin').addEventListener('click', () => {
+            const val = document.getElementById('input-admin-pass').value;
+            if (val === ADMIN_MASTER_PASS) {
+                adminUnlocked = true;
+                authView.classList.add('hidden');
+                workView.classList.remove('hidden');
+                document.getElementById('admin-auth-error').classList.add('hidden');
+                refreshAdminTables();
+                renderNftAdminTraitList();
+            } else {
+                document.getElementById('admin-auth-error').classList.remove('hidden');
+            }
+        });
+
+        function startFreshRun() {
+            matchTimer = 0;
+            lastWaveSpawn = 0;
+            lastSurgeTimer = 0;
+            surgeActive = false;
+            enemies = [];
+            gems = [];
+            playerProjectiles = [];
+            pigeonPoos = [];
+            toiletPaperRolls = [];
+            damageNumbers.length = 0;
+
+            const selectedToken = SCARY_SHITZ_COLLECTION[selectedNftIndex] || SCARY_SHITZ_COLLECTION[0];
+            hero = new Hero(WORLD_SIZE / 2, WORLD_SIZE / 2, selectedToken);
+
+            const profile = userProfiles[currentActiveUser];
+            if (profile) {
+                if (hero.tokenBonuses.has('3 free lives')) {
+                    profile.lives = Math.max(profile.lives, 3) + 3;
+                }
+                if (hero.tokenBonuses.has('3 free wipes')) {
+                    profile.wipes = Math.max(profile.wipes, 3) + 3;
+                }
+            }
+
+            isRunning = true;
+            isPaused = false;
+            updateProfileHUD();
+            updateHUD();
+            showToast(`🚀 RUN LAUNCHED as ${hero.token.name}!`);
+        }
+
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            audio.init();
+            document.getElementById('modal-start').classList.add('hidden');
+            startFreshRun();
+        });
+
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            document.getElementById('modal-gameover').classList.add('hidden');
+            startFreshRun();
+        });
+
+        document.getElementById('btn-revive').addEventListener('click', () => {
+            const profile = userProfiles[currentActiveUser];
+            if (profile && profile.lives > 0) {
+                profile.lives--;
+                savePersistentData();
+                updateProfileHUD();
+                hero.hp = hero.maxHp;
+                document.getElementById('modal-gameover').classList.add('hidden');
+                isPaused = false;
+                isRunning = true;
+                showToast("⚡ REVIVED WITH FULL HP!");
+            } else {
+                showToast("❌ NO LIVES LEFT! Deposit 10k USST to continue.");
+            }
+        });
+
+        const modalPerks = document.getElementById('modal-perks');
+        document.getElementById('btn-open-perks').addEventListener('click', () => {
+            modalPerks.classList.remove('hidden');
+            modalPerks.classList.add('flex');
+            isPaused = true;
+        });
+
+        document.getElementById('btn-close-perks').addEventListener('click', () => {
+            modalPerks.classList.add('hidden');
+            modalPerks.classList.remove('flex');
+            isPaused = false;
+        });
+
+        document.getElementById('btn-buy-wipe').addEventListener('click', () => {
+            audio.playCoin();
+            const profile = userProfiles[currentActiveUser];
+            if (profile) {
+                profile.wipes = (profile.wipes || 0) + 3;
+                savePersistentData();
+                updateProfileHUD();
+                showToast("🎉 PURCHASE SUCCESS: +3 Solid Wipes added!");
+            }
+        });
+
+        document.getElementById('btn-use-wipe').addEventListener('click', () => {
+            triggerSolidWipe();
+        });
+
+        document.getElementById('btn-quick-insert').addEventListener('click', () => {
+            audio.playCoin();
+            const profile = userProfiles[currentActiveUser];
+            if (profile) {
+                profile.lives = (profile.lives || 0) + 3;
+                profile.totalBurned = (profile.totalBurned || 0) + 10000;
+                savePersistentData();
+                updateProfileHUD();
+                showToast("🪙 +10k $USST BURNED! +3 Lives Added!");
+            }
+        });
+
+        document.getElementById('btn-save-name').addEventListener('click', () => {
+            const nameInput = document.getElementById('input-active-name').value.trim();
+            if (nameInput) {
+                currentActiveUser = nameInput;
+                if (!userProfiles[currentActiveUser]) {
+                    userProfiles[currentActiveUser] = {
+                        name: currentActiveUser,
+                        lives: 3,
+                        wipes: 3,
+                        highScore: 0,
+                        totalBurned: 10000
+                    };
+                }
+                savePersistentData();
+                updateProfileHUD();
+                showToast(`👤 Active Profile: ${currentActiveUser}`);
+            }
+        });
+
+        function refreshAdminTables() {
+            const tbody = document.getElementById('admin-user-tbody');
+            tbody.innerHTML = '';
+            const keys = Object.keys(userProfiles);
+            document.getElementById('user-count').innerText = keys.length;
+
+            keys.forEach(k => {
+                const u = userProfiles[k];
+                const tr = document.createElement('tr');
+                tr.className = `cursor-pointer hover:bg-slate-800/60 ${selectedAdminUser === k ? 'bg-cyan-950/40 text-cyan-300' : 'text-slate-300'}`;
+                tr.innerHTML = `
+                    <td class="p-2.5 font-bold">${u.name}</td>
+                    <td class="p-2.5">${u.lives}</td>
+                    <td class="p-2.5">${u.wipes}</td>
+                    <td class="p-2.5 text-amber-400 font-bold">${u.highScore || 0} kills</td>
+                    <td class="p-2.5 text-right space-x-1">
+                        <button class="px-2 py-0.5 rounded bg-cyan-700 hover:bg-cyan-600 text-[10px] text-white" onclick="selectAdminUser('${u.name}')">Edit</button>
+                        <button class="px-2 py-0.5 rounded bg-rose-700 hover:bg-rose-600 text-[10px] text-white" onclick="deleteAdminUser('${u.name}')">Del</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('adj-user-name').innerText = selectedAdminUser;
+
+            let totalBurnedAll = 0;
+            let totalWipesCount = 0;
+            keys.forEach(k => {
+                totalBurnedAll += (userProfiles[k].totalBurned || 0);
+                totalWipesCount += (userProfiles[k].wipes || 0);
+            });
+            document.getElementById('admin-vault-burned').innerText = totalBurnedAll.toLocaleString() + ' USST';
+            document.getElementById('admin-vault-usdc').innerText = '$' + (totalWipesCount / 3).toFixed(2) + ' USDC';
+        }
+
+        window.selectAdminUser = function(name) {
+            selectedAdminUser = name;
+            refreshAdminTables();
+        };
+
+        window.deleteAdminUser = function(name) {
+            if (Object.keys(userProfiles).length <= 1) {
+                showToast("⚠️ Cannot delete the only remaining profile!");
+                return;
+            }
+            delete userProfiles[name];
+            if (selectedAdminUser === name) selectedAdminUser = Object.keys(userProfiles)[0];
+            if (currentActiveUser === name) currentActiveUser = selectedAdminUser;
+            savePersistentData();
+            refreshAdminTables();
+            updateProfileHUD();
+            showToast(`🗑️ Profile '${name}' deleted.`);
+        };
+
+        document.getElementById('btn-add-profile-prompt').addEventListener('click', () => {
+            const name = prompt("Enter new Player / Wallet Profile Name:");
+            if (name && name.trim()) {
+                userProfiles[name.trim()] = { name: name.trim(), lives: 3, wipes: 3, highScore: 0, totalBurned: 10000 };
+                selectedAdminUser = name.trim();
+                savePersistentData();
+                refreshAdminTables();
+            }
+        });
+
+        document.getElementById('btn-deposit-lives').addEventListener('click', () => {
+            if (userProfiles[selectedAdminUser]) {
+                userProfiles[selectedAdminUser].lives += 3;
+                userProfiles[selectedAdminUser].totalBurned = (userProfiles[selectedAdminUser].totalBurned || 0) + 10000;
+                savePersistentData();
+                refreshAdminTables();
+                updateProfileHUD();
+            }
+        });
+        document.getElementById('btn-withdraw-lives').addEventListener('click', () => {
+            if (userProfiles[selectedAdminUser] && userProfiles[selectedAdminUser].lives > 0) {
+                userProfiles[selectedAdminUser].lives -= 1;
+                savePersistentData();
+                refreshAdminTables();
+                updateProfileHUD();
+            }
+        });
+        document.getElementById('btn-deposit-wipes').addEventListener('click', () => {
+            if (userProfiles[selectedAdminUser]) {
+                userProfiles[selectedAdminUser].wipes += 3;
+                savePersistentData();
+                refreshAdminTables();
+                updateProfileHUD();
+            }
+        });
+        document.getElementById('btn-withdraw-wipes').addEventListener('click', () => {
+            if (userProfiles[selectedAdminUser] && userProfiles[selectedAdminUser].wipes > 0) {
+                userProfiles[selectedAdminUser].wipes -= 1;
+                savePersistentData();
+                refreshAdminTables();
+                updateProfileHUD();
+            }
+        });
+
+        const slHp = document.getElementById('slider-hp-mult');
+        const slSp = document.getElementById('slider-spawn-rate');
+        const slPoo = document.getElementById('slider-pigeon-speed');
+        const slFr = document.getElementById('slider-player-fr');
+
+        slHp.oninput = (e) => {
+            gameConfig.mobHpMultiplier = parseFloat(e.target.value);
+            document.getElementById('val-hp-mult').innerText = gameConfig.mobHpMultiplier.toFixed(1) + 'x';
+            savePersistentData();
+        };
+        slSp.oninput = (e) => {
+            gameConfig.spawnRate = parseFloat(e.target.value);
+            document.getElementById('val-spawn-rate').innerText = gameConfig.spawnRate.toFixed(1) + 's';
+            savePersistentData();
+        };
+        slPoo.oninput = (e) => {
+            gameConfig.pigeonAttackInterval = parseFloat(e.target.value);
+            document.getElementById('val-pigeon-speed').innerText = gameConfig.pigeonAttackInterval.toFixed(1) + 's';
+            savePersistentData();
+        };
+        slFr.oninput = (e) => {
+            gameConfig.playerFireRate = parseInt(e.target.value);
+            hero.shardCooldown = gameConfig.playerFireRate;
+            document.getElementById('val-player-fr').innerText = gameConfig.playerFireRate + 'ms';
+            savePersistentData();
+        };
+
+        document.getElementById('btn-reset-tuning').addEventListener('click', () => {
+            gameConfig = { mobHpMultiplier: 1.0, spawnRate: 1.0, pigeonAttackInterval: 2.5, playerFireRate: 400, toiletPaperRollSpeed: 950 };
+            slHp.value = 1.0; slSp.value = 1.0; slPoo.value = 2.5; slFr.value = 400;
+            document.getElementById('val-hp-mult').innerText = '1.0x';
+            document.getElementById('val-spawn-rate').innerText = '1.0s';
+            document.getElementById('val-pigeon-speed').innerText = '2.5s';
+            document.getElementById('val-player-fr').innerText = '400ms';
+            hero.shardCooldown = 400;
+            savePersistentData();
+            showToast("⚙️ Tuning reset to default!");
+        });
+
+        document.getElementById('btn-export-json').addEventListener('click', () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userProfiles, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "usst_arcade_users.json");
+            dlAnchor.click();
+        });
+
+        document.getElementById('btn-wipe-all-data').addEventListener('click', () => {
+            localStorage.clear();
+            showToast("🔄 Factory reset applied. Reloading...");
+            setTimeout(() => location.reload(), 800);
+        });
+
+        function handleResize() {
+            screenWidth = window.innerWidth;
+            screenHeight = window.innerHeight;
+            canvas.width = screenWidth;
+            canvas.height = screenHeight;
+            camera.width = screenWidth;
+            camera.height = screenHeight;
+        }
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        window.onload = function() {
+            updateProfileHUD();
+            updateCachedCountLabel();
+            checkAdminAccessUrl();
+            renderCharacterPreview(SCARY_SHITZ_COLLECTION[0]);
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

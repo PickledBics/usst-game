@@ -445,17 +445,47 @@
     <!-- Notification Toast Element -->
     <div id="toast" class="absolute top-20 z-50 pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-4 px-4 py-2 rounded-xl glass-panel text-xs font-mono font-bold"></div>
 
-    <!-- ISOLATED SECURE GAME ENGINE (CLOSURE-SCOPED, ANTI-TAMPER PROTECTED) -->
+    <!-- ISOLATED SECURE GAME ENGINE -->
     <script>
     (function () {
         'use strict';
+
+        /* ==========================================================
+           ANTI-DEBUGGING & BREAKPOINT TRAP SYSTEMS
+           ========================================================== */
+        // 1. Recursive Anti-Debugger: If devtools pauses execution, this locks the debugger
+        const activateAntiDebugger = () => {
+            function debugProtection() {
+                try {
+                    const check = function() {
+                        return false;
+                    };
+                    check.constructor('debugger')();
+                } catch (e) {}
+            }
+            setInterval(debugProtection, 50);
+        };
+        activateAntiDebugger();
+
+        // 2. Breakpoint Detection via Performance Delta
+        let lastFrameTick = performance.now();
+        setInterval(() => {
+            const now = performance.now();
+            const delta = now - lastFrameTick;
+            lastFrameTick = now;
+            // A delta > 500ms indicates execution was manually halted by a breakpoint
+            if (delta > 500 && isRunning && !isPaused) {
+                console.warn("[SECURITY] Execution pause / breakpoint tampering detected!");
+                if (hero) hero.killImmediate();
+                showToast("🚨 Execution halted! Security lock engaged.");
+            }
+        }, 100);
 
         /* ==========================================================
            ANTI-CHEAT & CRYPTOGRAPHIC INTEGRITY UTILITIES
            ========================================================== */
         const APP_ENTROPY_SALT = "USST_CRO_SECURE_VAULT_918274";
 
-        // Fast HMAC-like cryptographic hashing function
         function computeSecureHash(str) {
             let h1 = 0xdeadbeef ^ 3482, h2 = 0x41c6ce57 ^ 8192;
             for (let i = 0, ch; i < str.length; i++) {
@@ -468,7 +498,6 @@
             return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
         }
 
-        // Obfuscated Encrypted Value Wrapper (Protects HP, Lives, Wipes, Kills in Memory)
         class SecureNumeric {
             constructor(initialValue, bounds = { min: 0, max: 9999999 }) {
                 this.bounds = bounds;
@@ -499,13 +528,8 @@
                 return decA;
             }
 
-            add(delta) {
-                this.set(this.get() + delta);
-            }
-
-            sub(delta) {
-                this.set(this.get() - delta);
-            }
+            add(delta) { this.set(this.get() + delta); }
+            sub(delta) { this.set(this.get() - delta); }
 
             triggerTamperPanic(reason) {
                 console.warn(`[SECURITY ALERT] Integrity Violation: ${reason}`);
@@ -1004,7 +1028,6 @@
                 this.radius = 28;
                 this.speed = 225;
                 
-                // Memory-obfuscated values prevent CheatEngine and dev console injection
                 this.maxHp = 100;
                 this.secureHp = new SecureNumeric(100, { min: 0, max: 2000 });
                 this.secureKills = new SecureNumeric(0, { min: 0, max: 100000 });
@@ -1039,7 +1062,6 @@
                 this.isMoving = false;
             }
 
-            // Expose read-only properties for safe code interaction
             get hp() { return this.secureHp.get(); }
             get kills() { return this.secureKills.get(); }
 
@@ -1596,7 +1618,6 @@
         let enemies = [];
         let gems = [];
 
-        // Watchdog constantly monitors variables for abnormal rate changes (anti-speedhack & stat injection)
         let lastIntegrityKills = 0;
         setInterval(() => {
             if (isRunning && !isPaused) {
@@ -2097,7 +2118,7 @@
             showToast(showOnlyOwnedNfts ? "Filtering to your wallet's NFT inventory" : "Showing all 69 Scary Shitz");
         });
 
-        window.toggleTraitBonus = function(traitName, bonusType, isChecked) {
+        function internalToggleTraitBonus(traitName, bonusType, isChecked) {
             if (!nftTraitBonusRules[traitName]) nftTraitBonusRules[traitName] = [];
             if (isChecked) {
                 if (!nftTraitBonusRules[traitName].includes(bonusType)) {
@@ -2109,7 +2130,7 @@
             saveNftRules();
             renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
             showToast(`⚙️ Updated rule for ${traitName}`);
-        };
+        }
 
         function renderNftAdminTraitList() {
             const container = document.getElementById('nft-traits-admin-list');
@@ -2128,21 +2149,38 @@
                     const row = document.createElement('div');
                     row.className = 'p-2 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2';
 
-                    let checkboxesHtml = allBonuses.map(b => {
+                    const traitTitle = document.createElement('span');
+                    traitTitle.className = 'font-bold text-slate-200 text-xs';
+                    traitTitle.innerText = trait;
+                    row.appendChild(traitTitle);
+
+                    const boxGroup = document.createElement('div');
+                    boxGroup.className = 'flex flex-wrap gap-1';
+
+                    allBonuses.forEach(b => {
                         const checked = (nftTraitBonusRules[trait] || []).includes(b);
                         const labelShort = b.replace(' points bonus', ' Pts').replace('free ', '').replace('automatic ', '');
-                        return `
-                            <label class="flex items-center gap-1 cursor-pointer text-[10px] bg-slate-950 px-2 py-1 rounded border border-slate-800 hover:border-slate-700">
-                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleTraitBonus('${trait.replace(/'/g, "\\'")}', '${b}', this.checked)" class="accent-amber-400 rounded" />
-                                <span>${labelShort}</span>
-                            </label>
-                        `;
-                    }).join('');
+                        
+                        const lbl = document.createElement('label');
+                        lbl.className = 'flex items-center gap-1 cursor-pointer text-[10px] bg-slate-950 px-2 py-1 rounded border border-slate-800 hover:border-slate-700';
 
-                    row.innerHTML = `
-                        <span class="font-bold text-slate-200 text-xs">${trait}</span>
-                        <div class="flex flex-wrap gap-1">${checkboxesHtml}</div>
-                    `;
+                        const chk = document.createElement('input');
+                        chk.type = 'checkbox';
+                        chk.checked = checked;
+                        chk.className = 'accent-amber-400 rounded';
+                        chk.addEventListener('change', (e) => {
+                            internalToggleTraitBonus(trait, b, e.target.checked);
+                        });
+
+                        const txt = document.createElement('span');
+                        txt.innerText = labelShort;
+
+                        lbl.appendChild(chk);
+                        lbl.appendChild(txt);
+                        boxGroup.appendChild(lbl);
+                    });
+
+                    row.appendChild(boxGroup);
                     container.appendChild(row);
                 });
             });
@@ -2165,7 +2203,7 @@
             showToast("NFT rules reset to defaults!");
         });
 
-        // Admin Auth Elements
+        // Admin Modal Controls
         const modalAdmin = document.getElementById('modal-admin');
         const authView = document.getElementById('admin-auth-view');
         const workView = document.getElementById('admin-workspace-view');
@@ -2413,8 +2451,29 @@
             }
         });
 
+        function selectAdminUser(name) {
+            selectedAdminUser = name;
+            refreshAdminTables();
+        }
+
+        function deleteAdminUser(name) {
+            if (Object.keys(userProfiles).length <= 1) {
+                showToast("⚠️ Cannot delete the only remaining profile!");
+                return;
+            }
+            delete userProfiles[name];
+            if (selectedAdminUser === name) selectedAdminUser = Object.keys(userProfiles)[0];
+            if (currentActiveUser === name) currentActiveUser = selectedAdminUser;
+            savePersistentData();
+            refreshAdminTables();
+            updateProfileHUD();
+            showToast(`🗑️ Profile '${name}' deleted.`);
+        }
+
+        // Internal Scoped Admin Table Renderer (zero window globals exposed)
         function refreshAdminTables() {
             const tbody = document.getElementById('admin-user-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
             const keys = Object.keys(userProfiles);
             document.getElementById('user-count').innerText = keys.length;
@@ -2423,16 +2482,51 @@
                 const u = userProfiles[k];
                 const tr = document.createElement('tr');
                 tr.className = `cursor-pointer hover:bg-slate-800/60 ${selectedAdminUser === k ? 'bg-cyan-950/40 text-cyan-300' : 'text-slate-300'}`;
-                tr.innerHTML = `
-                    <td class="p-2.5 font-bold">${u.name}</td>
-                    <td class="p-2.5">${u.lives}</td>
-                    <td class="p-2.5">${u.wipes}</td>
-                    <td class="p-2.5 text-amber-400 font-bold">${u.highScore || 0} kills</td>
-                    <td class="p-2.5 text-right space-x-1">
-                        <button class="px-2 py-0.5 rounded bg-cyan-700 hover:bg-cyan-600 text-[10px] text-white" onclick="selectAdminUser('${u.name}')">Edit</button>
-                        <button class="px-2 py-0.5 rounded bg-rose-700 hover:bg-rose-600 text-[10px] text-white" onclick="deleteAdminUser('${u.name}')">Del</button>
-                    </td>
-                `;
+
+                const tdName = document.createElement('td');
+                tdName.className = 'p-2.5 font-bold';
+                tdName.innerText = u.name;
+
+                const tdLives = document.createElement('td');
+                tdLives.className = 'p-2.5';
+                tdLives.innerText = u.lives;
+
+                const tdWipes = document.createElement('td');
+                tdWipes.className = 'p-2.5';
+                tdWipes.innerText = u.wipes;
+
+                const tdScore = document.createElement('td');
+                tdScore.className = 'p-2.5 text-amber-400 font-bold';
+                tdScore.innerText = `${u.highScore || 0} kills`;
+
+                const tdActions = document.createElement('td');
+                tdActions.className = 'p-2.5 text-right space-x-1';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'px-2 py-0.5 rounded bg-cyan-700 hover:bg-cyan-600 text-[10px] text-white';
+                btnEdit.innerText = 'Edit';
+                btnEdit.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectAdminUser(u.name);
+                });
+
+                const btnDel = document.createElement('button');
+                btnDel.className = 'px-2 py-0.5 rounded bg-rose-700 hover:bg-rose-600 text-[10px] text-white';
+                btnDel.innerText = 'Del';
+                btnDel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAdminUser(u.name);
+                });
+
+                tdActions.appendChild(btnEdit);
+                tdActions.appendChild(btnDel);
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdLives);
+                tr.appendChild(tdWipes);
+                tr.appendChild(tdScore);
+                tr.appendChild(tdActions);
+
                 tbody.appendChild(tr);
             });
 
@@ -2447,25 +2541,6 @@
             document.getElementById('admin-vault-burned').innerText = totalBurnedAll.toLocaleString() + ' USST';
             document.getElementById('admin-vault-usdc').innerText = '$' + (totalWipesCount / 3).toFixed(2) + ' USDC';
         }
-
-        window.selectAdminUser = function(name) {
-            selectedAdminUser = name;
-            refreshAdminTables();
-        };
-
-        window.deleteAdminUser = function(name) {
-            if (Object.keys(userProfiles).length <= 1) {
-                showToast("⚠️ Cannot delete the only remaining profile!");
-                return;
-            }
-            delete userProfiles[name];
-            if (selectedAdminUser === name) selectedAdminUser = Object.keys(userProfiles)[0];
-            if (currentActiveUser === name) currentActiveUser = selectedAdminUser;
-            savePersistentData();
-            refreshAdminTables();
-            updateProfileHUD();
-            showToast(`🗑️ Profile '${name}' deleted.`);
-        };
 
         document.getElementById('btn-add-profile-prompt').addEventListener('click', () => {
             const name = prompt("Enter new Player / Wallet Profile Name:");
@@ -2585,12 +2660,3 @@
     </script>
 </body>
 </html>
-```eof
-
----
-
-### Step 2: The Permanent Web3 Solution (Server / Contract Authority)
-
-Client-side obfuscation will stop 98% of script-kiddies and casual friends messing with F12. However, for a Web3 game involving real \$USST buy-ins, token burns, and real reward pots, **the browser cannot hold the master balance of lives**.
-
-Here is how production crypto games solve this:

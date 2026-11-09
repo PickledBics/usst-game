@@ -116,9 +116,10 @@
                 </button>
             </div>
 
-            <button id="btn-quick-insert" class="py-1 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-mono text-[10px] border border-amber-500/40 transition">
-                +10k $USST (+3 Lives)
-            </button>
+            <!-- In-game life purchases disabled during testing; managed via Admin panel only -->
+            <div class="py-1 px-2.5 rounded-lg bg-slate-900/80 text-slate-400 font-mono text-[10px] border border-slate-800">
+                🔒 Lives: Admin Managed
+            </div>
         </div>
     </header>
 
@@ -169,14 +170,14 @@
                             <span class="text-[11px] text-slate-300 font-mono">Screen Cleaning Rolls (3 Uses)</span>
                         </div>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-extrabold text-xs border border-emerald-500/40">$1.00 USDC</span>
+                    <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 font-mono font-bold text-xs border border-slate-700">TEST MODE: LOCKED</span>
                 </div>
                 <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
                     Instantly wipes all mobs, pigeons, and bosses off the screen using rolling 3D toilet paper rolls. Converts all enemies into green diamond XP gems!
                 </p>
                 <div class="mt-4 flex gap-2">
-                    <button id="btn-buy-wipe" class="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition active:scale-95">
-                        BUY FOR $1 USDC (+3 WIPES)
+                    <button id="btn-buy-wipe" disabled class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 font-bold text-xs uppercase tracking-wider cursor-not-allowed">
+                        🔒 BUYING DISABLED (ADMIN CONTROLLED)
                     </button>
                 </div>
             </div>
@@ -794,7 +795,7 @@
         const audio = new AudioEngine();
 
         /* ==========================================================
-           ANTI-TAMPER SIGNED STORAGE SYSTEM
+           ANTI-TAMPER SIGNED STORAGE SYSTEM (HARDENED)
            ========================================================== */
         let gameConfig = {
             mobHpMultiplier: 1.0,
@@ -816,23 +817,40 @@
 
         function loadPersistentData() {
             try {
+                // 1. Verify User Profiles Signature
                 const rawP = localStorage.getItem(STORAGE_KEY_PROFILES);
                 const sigP = localStorage.getItem(STORAGE_KEY_PROFILES + '_SIG');
                 if (rawP && sigP) {
-                    const expectedSig = computeSecureHash(rawP + APP_ENTROPY_SALT);
-                    if (expectedSig === sigP) {
+                    const expectedSigP = computeSecureHash(rawP + APP_ENTROPY_SALT);
+                    if (expectedSigP === sigP) {
                         userProfiles = JSON.parse(rawP);
                     } else {
-                        console.warn("[ANTI-CHEAT] LocalStorage alteration detected! Overwriting with defaults.");
-                        showToast("⚠️ Tampered local save detected! Resetting to secure baseline.");
+                        console.warn("[ANTI-CHEAT] User profile tampering detected!");
+                        showToast("⚠️ Local save signature mismatch! Restoring secure defaults.");
                         savePersistentData();
                     }
-                } else if (rawP && !sigP) {
+                } else {
                     savePersistentData();
                 }
 
-                const c = localStorage.getItem(STORAGE_KEY_CONFIG);
-                if (c) gameConfig = Object.assign(gameConfig, JSON.parse(c));
+                // 2. Verify Game Configuration Signature (Blocks console script injection shown in screenshot)
+                const rawC = localStorage.getItem(STORAGE_KEY_CONFIG);
+                const sigC = localStorage.getItem(STORAGE_KEY_CONFIG + '_SIG');
+                if (rawC && sigC) {
+                    const expectedSigC = computeSecureHash(rawC + APP_ENTROPY_SALT);
+                    if (expectedSigC === sigC) {
+                        gameConfig = Object.assign(gameConfig, JSON.parse(rawC));
+                    } else {
+                        console.warn("[ANTI-CHEAT] Injected raw config tampering detected!");
+                        showToast("🚨 Tampered game config detected and rejected!");
+                        savePersistentData();
+                    }
+                } else if (rawC && !sigC) {
+                    // Raw injection detected without valid signature
+                    console.warn("[ANTI-CHEAT] Unsigned game config detected!");
+                    showToast("🚨 Unsigned configuration rejected!");
+                    savePersistentData();
+                }
             } catch (err) {
                 console.error("Storage load error:", err);
             }
@@ -840,15 +858,28 @@
 
         function savePersistentData() {
             try {
-                const serialized = JSON.stringify(userProfiles);
-                const signature = computeSecureHash(serialized + APP_ENTROPY_SALT);
-                localStorage.setItem(STORAGE_KEY_PROFILES, serialized);
-                localStorage.setItem(STORAGE_KEY_PROFILES + '_SIG', signature);
-                localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(gameConfig));
+                const serializedP = JSON.stringify(userProfiles);
+                const signatureP = computeSecureHash(serializedP + APP_ENTROPY_SALT);
+                localStorage.setItem(STORAGE_KEY_PROFILES, serializedP);
+                localStorage.setItem(STORAGE_KEY_PROFILES + '_SIG', signatureP);
+
+                const serializedC = JSON.stringify(gameConfig);
+                const signatureC = computeSecureHash(serializedC + APP_ENTROPY_SALT);
+                localStorage.setItem(STORAGE_KEY_CONFIG, serializedC);
+                localStorage.setItem(STORAGE_KEY_CONFIG + '_SIG', signatureC);
             } catch (err) {
                 console.error("Storage save error:", err);
             }
         }
+
+        // Live storage listener: catches external modifications in DevTools in real time
+        window.addEventListener('storage', (e) => {
+            if (e.key === STORAGE_KEY_CONFIG || e.key === STORAGE_KEY_PROFILES) {
+                console.warn("[ANTI-CHEAT] External storage manipulation detected!");
+                showToast("🚨 External localStorage modification detected!");
+                savePersistentData(); // immediately overwrite with current validated in-memory state
+            }
+        });
 
         loadPersistentData();
 
@@ -2405,32 +2436,26 @@
             isPaused = false;
         });
 
-        document.getElementById('btn-buy-wipe').addEventListener('click', () => {
-            audio.playCoin();
-            const profile = userProfiles[currentActiveUser];
-            if (profile) {
-                profile.wipes = (profile.wipes || 0) + 3;
-                savePersistentData();
-                updateProfileHUD();
-                showToast("🎉 PURCHASE SUCCESS: +3 Solid Wipes added!");
-            }
-        });
+        // Buying wipes in-game is disabled during testing (managed exclusively via Admin panel)
+        const btnBuyWipe = document.getElementById('btn-buy-wipe');
+        if (btnBuyWipe) {
+            btnBuyWipe.addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast("🔒 Purchasing is disabled during testing. Use the Admin panel.");
+            });
+        }
 
         document.getElementById('btn-use-wipe').addEventListener('click', () => {
             triggerSolidWipe();
         });
 
-        document.getElementById('btn-quick-insert').addEventListener('click', () => {
-            audio.playCoin();
-            const profile = userProfiles[currentActiveUser];
-            if (profile) {
-                profile.lives = (profile.lives || 0) + 3;
-                profile.totalBurned = (profile.totalBurned || 0) + 10000;
-                savePersistentData();
-                updateProfileHUD();
-                showToast("🪙 +10k $USST BURNED! +3 Lives Added!");
-            }
-        });
+        // Quick insert button removed from HUD; handler kept safe as no-op if element is absent
+        const btnQuickInsert = document.getElementById('btn-quick-insert');
+        if (btnQuickInsert) {
+            btnQuickInsert.addEventListener('click', () => {
+                showToast("🔒 In-game buy is disabled during testing. Use the Admin panel.");
+            });
+        }
 
         document.getElementById('btn-save-name').addEventListener('click', () => {
             const nameInput = document.getElementById('input-active-name').value.trim();

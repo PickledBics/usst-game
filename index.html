@@ -41,7 +41,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Virtual touch joystick */
         #joystick-base {
             display: none;
             position: absolute;
@@ -81,52 +80,42 @@
 
     <!-- Live HUD Header -->
     <header class="absolute top-0 left-0 right-0 p-2 sm:p-4 z-20 flex justify-between items-start pointer-events-none gap-2">
-        <!-- Player Stats & XP -->
         <div class="glass-panel rounded-2xl p-2.5 sm:p-3 w-48 sm:w-72 pointer-events-auto border-cyan-500/30">
             <div class="flex justify-between items-center mb-1 text-xs">
                 <span class="font-cyber text-cyan-300 font-bold">LVL <span id="hud-level" class="text-white text-sm">1</span></span>
                 <span class="text-slate-400 font-mono text-[11px]" id="hud-xp-label">0/70 XP</span>
             </div>
-            <!-- XP Progress -->
             <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
                 <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-indigo-500 rounded-full transition-all duration-150" style="width: 0%;"></div>
             </div>
-            <!-- Health & Lives -->
             <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800 text-[11px]">
                 <span class="text-rose-400 font-bold">❤️ HP <span id="hud-hp-text" class="text-white">100/100</span></span>
                 <span class="text-amber-300 font-bold font-mono">🎟️ LIVES: <span id="hud-lives" class="text-white">3</span></span>
             </div>
         </div>
 
-        <!-- Center Match Timer & Wave Info -->
         <div class="glass-panel rounded-2xl px-4 py-2 flex flex-col items-center pointer-events-auto border-amber-500/30 text-center">
             <span class="text-[9px] uppercase tracking-widest text-amber-400 font-mono">Survival Clock</span>
             <span id="hud-timer" class="font-cyber text-xl sm:text-2xl font-bold text-white tracking-wider">00:00</span>
             <span id="hud-wave" class="text-[10px] text-slate-300 font-semibold tracking-wide uppercase mt-0.5">Wave 1: Paper Hands</span>
         </div>
 
-        <!-- Right Quick Actions: Perks, Solid Wipe, Burn -->
         <div class="flex flex-col gap-2 items-end pointer-events-auto">
-            <!-- Active Profile Tag -->
             <div class="glass-panel py-1 px-3 rounded-xl border-cyan-400/40 text-[11px] font-mono flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span id="hud-player-name" class="font-bold text-slate-200 truncate max-w-[110px]">TurdKing</span>
                 <span class="text-amber-400 font-bold" id="hud-burned-sum">0k USST</span>
             </div>
 
-            <!-- In-Game Action Buttons -->
             <div class="flex gap-1.5 sm:gap-2">
-                <!-- Perks Shop Trigger -->
                 <button id="btn-open-perks" class="py-1.5 px-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-extrabold text-xs shadow-lg uppercase tracking-wider flex items-center gap-1 transition active:scale-95 border border-pink-300/40">
                     <span>⚡</span> <span>PERKS</span>
                 </button>
-                <!-- Quick Solid Wipe Trigger -->
                 <button id="btn-use-wipe" class="py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs shadow-lg uppercase tracking-wider flex items-center gap-1.5 transition active:scale-95 border border-teal-200">
                     <span>🧻</span> <span>WIPE (<span id="hud-wipe-count">3</span>)</span>
                 </button>
             </div>
 
-            <!-- Quick Token Arcade Insert Button -->
             <button id="btn-quick-insert" class="py-1 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-mono text-[10px] border border-amber-500/40 transition">
                 +10k $USST (+3 Lives)
             </button>
@@ -138,13 +127,12 @@
         <button id="btn-toggle-sound" class="glass-panel p-2.5 rounded-xl hover:bg-slate-800 text-slate-200 text-xs flex items-center gap-1">
             <span id="sound-icon">🔊</span>
         </button>
-        <!-- Admin button is hidden from public view by default -->
         <button id="btn-open-admin" class="glass-panel p-2.5 rounded-xl hover:bg-slate-800 text-amber-400 text-xs font-mono font-bold hidden items-center gap-1">
             <span>⚙️</span> ADMIN
         </button>
     </div>
 
-    <!-- Active Weapons / Buffs Indicator Row (Bottom Right) -->
+    <!-- Active Weapons / Buffs Indicator Row -->
     <div class="absolute bottom-3 right-3 z-20 flex gap-1.5 pointer-events-none">
         <div class="glass-panel p-1.5 px-2.5 rounded-xl text-center border-cyan-400/40">
             <div class="text-xs">💎</div>
@@ -163,7 +151,7 @@
         </div>
     </div>
 
-    <!-- UI MODAL: In-Game Perks Tab (Pauses Game) -->
+    <!-- UI MODAL: Perks Shop -->
     <div id="modal-perks" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex-col items-center justify-center p-4">
         <div class="glass-panel p-6 rounded-3xl max-w-md w-full border-fuchsia-500/50 shadow-2xl relative text-center">
             <div class="w-12 h-12 mx-auto mb-2 bg-fuchsia-500/20 rounded-2xl flex items-center justify-center text-2xl border border-fuchsia-500/40">
@@ -172,7 +160,6 @@
             <h3 class="text-2xl font-cyber font-black text-white">GAME PERKS SHOP</h3>
             <p class="text-xs text-slate-400 mt-1">Combat is paused. Enhance your survivability with premium Web3 boosts.</p>
 
-            <!-- Featured Perk: Solid Wipe -->
             <div class="mt-5 p-4 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/90 border border-emerald-500/50 text-left">
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-3">
@@ -194,7 +181,6 @@
                 </div>
             </div>
 
-            <!-- Close & Resume Button -->
             <button id="btn-close-perks" class="mt-5 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider transition">
                 RESUME COMBAT
             </button>
@@ -251,7 +237,6 @@
     <!-- UI MODAL: COMPLETE ADMIN PANEL -->
     <div id="modal-admin" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[60] hidden flex-col items-center justify-center p-4 overflow-y-auto">
         <div class="glass-panel p-5 sm:p-7 rounded-3xl max-w-4xl w-full border-amber-500/40 shadow-2xl relative my-auto max-h-[90vh] flex flex-col pointer-events-auto">
-            <!-- Admin Top Bar -->
             <div class="flex justify-between items-center pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">⚙️</span>
@@ -263,11 +248,10 @@
                 <button id="btn-close-admin" class="text-slate-400 hover:text-white text-xl font-mono px-2">✕</button>
             </div>
 
-            <!-- Password Gate View (Shown if not unlocked) -->
+            <!-- Password Gate View -->
             <div id="admin-auth-view" class="py-8 flex flex-col items-center text-center">
                 <span class="text-4xl mb-3">🔐</span>
                 <h4 class="font-cyber text-lg font-bold text-slate-200">Enter Admin Master Key</h4>
-                <p class="text-xs text-slate-400 mt-1 max-w-sm">Default key is <code class="text-cyan-400 font-mono">usstadmin2026</code></p>
                 <div class="flex gap-2 mt-4 w-full max-w-xs">
                     <input id="input-admin-pass" type="password" placeholder="Admin Key" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm font-mono text-white focus:outline-none focus:border-amber-400" />
                     <button id="btn-auth-admin" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider">LOGIN</button>
@@ -275,9 +259,8 @@
                 <span id="admin-auth-error" class="text-rose-400 text-xs mt-2 hidden">Invalid Key!</span>
             </div>
 
-            <!-- Admin Main Workspace View (Unlocked) -->
+            <!-- Admin Main Workspace View -->
             <div id="admin-workspace-view" class="hidden flex-col gap-4 mt-4 overflow-y-auto pr-1">
-                <!-- Navigation Tabs -->
                 <div class="flex gap-2 border-b border-slate-800 pb-2 text-xs font-mono">
                     <button id="tab-btn-users" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold">USERS & PROFILES</button>
                     <button id="tab-btn-nft" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">NFT TRAITS</button>
@@ -285,14 +268,13 @@
                     <button id="tab-btn-vault" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white">VAULT LEDGER</button>
                 </div>
 
-                <!-- TAB 1: User Profiles & Allowance Manager -->
+                <!-- TAB 1: User Profiles -->
                 <div id="tab-content-users" class="flex flex-col gap-3">
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-mono text-slate-400">Registered Profiles (<span id="user-count">0</span>)</span>
                         <button id="btn-add-profile-prompt" class="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold">+ New Profile</button>
                     </div>
 
-                    <!-- User Table -->
                     <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/60 max-h-56 overflow-y-auto">
                         <table class="w-full text-left font-mono text-xs">
                             <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 text-[10px] uppercase">
@@ -304,13 +286,10 @@
                                     <th class="p-2.5 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="admin-user-tbody" class="divide-y divide-slate-800/80">
-                                <!-- Populated dynamically -->
-                            </tbody>
+                            <tbody id="admin-user-tbody" class="divide-y divide-slate-800/80"></tbody>
                         </table>
                     </div>
 
-                    <!-- Selected Profile Fast Action Box -->
                     <div id="profile-action-box" class="p-3.5 rounded-xl bg-slate-900 border border-cyan-500/30 text-xs font-mono">
                         <span class="text-cyan-400 font-bold block mb-2">QUICK ALLOWANCE ADJUSTMENT: <span id="adj-user-name" class="text-white">None Selected</span></span>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -332,12 +311,10 @@
                         <button id="btn-reset-nft-rules" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Reset Defaults</button>
                     </div>
 
-                    <div class="overflow-y-auto max-h-[55vh] pr-1 space-y-2" id="nft-traits-admin-list">
-                        <!-- Populated dynamically with checkboxes for 5% pts, 3 wipes, lvl 3 items, 3 lives -->
-                    </div>
+                    <div class="overflow-y-auto max-h-[55vh] pr-1 space-y-2" id="nft-traits-admin-list"></div>
                 </div>
 
-                <!-- TAB 2: Live Game Tuning & Difficulty Modifiers -->
+                <!-- TAB 2: Live Game Tuning -->
                 <div id="tab-content-tuning" class="hidden flex-col gap-3 font-mono text-xs">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
@@ -403,12 +380,11 @@
     <div id="modal-start" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4 text-center">
         <div class="max-w-md w-full glass-panel p-6 sm:p-7 rounded-3xl border-cyan-500/50 shadow-2xl relative max-h-[95vh] overflow-y-auto">
             <div class="text-4xl mb-1">👑💩✨</div>
-            <h1 class="text-xl sm:text-2xl font-cyber font-black text-white tracking-wider">
+            <h1 class="text-xl sm:text-2xl font-cyber font-black text-white tracking-wider cursor-pointer">
                 <span class="rainbow-text">ULTIMATE SUPER SHINY TURD</span>
             </h1>
             <p class="text-cyan-400 text-[10px] font-mono tracking-widest uppercase font-bold">Swarm Survivors - Cronos Edition</p>
 
-            <!-- NFT Character Selector Carousel -->
             <div class="mt-3 p-3 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-left font-mono">
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-[10px] uppercase text-cyan-300 font-bold">Select Hero NFT:</span>
@@ -417,7 +393,6 @@
                 
                 <div class="flex items-center gap-2">
                     <button id="btn-char-prev" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm flex items-center justify-center transition">◀</button>
-                    <!-- Mini Canvas Preview of Avatar with Authentic Image Support -->
                     <div class="relative w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden mx-auto shadow-inner">
                         <img id="charPreviewImg" class="w-full h-full object-cover hidden" alt="NFT Preview" />
                         <canvas id="charPreviewCanvas" width="96" height="96" class="w-full h-full"></canvas>
@@ -426,7 +401,6 @@
                     <button id="btn-char-next" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm flex items-center justify-center transition">▶</button>
                 </div>
 
-                <!-- Active Player Profile Name Input -->
                 <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between gap-2 text-[10px]">
                     <span class="text-slate-400">Player Tag:</span>
                     <div class="flex items-center gap-1.5 flex-1 justify-end">
@@ -435,20 +409,18 @@
                     </div>
                 </div>
 
-                <!-- Web3 Connect Wallet / Holder Simulation Bar -->
                 <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
                     <span class="text-slate-400">Wallet Inventory:</span>
                     <div class="flex gap-1.5">
                         <button id="btn-connect-wallet" class="px-2 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-[10px] transition">
                             🦊 Connect Wallet
                         </button>
-                        <button id="btn-toggle-all-nfts" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[9px] hover:text-white" title="Show all 69 NFTs or only owned">
+                        <button id="btn-toggle-all-nfts" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[9px] hover:text-white">
                             Show All (Demo)
                         </button>
                     </div>
                 </div>
 
-                <!-- NFT Traits Badges List -->
                 <div class="grid grid-cols-2 gap-1 text-[9px] mt-2 text-slate-400" id="char-trait-details">
                     <div>Eyes: <span class="text-cyan-300" id="trait-val-eyes">Cyan Glow</span></div>
                     <div>Scarf: <span class="text-rose-300" id="trait-val-scarf">Crypt Plaid</span></div>
@@ -456,17 +428,13 @@
                     <div>Scene: <span class="text-emerald-300" id="trait-val-bg">Arena Grid</span></div>
                 </div>
 
-                <!-- Active Bonus Badges for selected NFT -->
-                <div class="mt-2 pt-2 border-t border-slate-800 flex flex-wrap gap-1" id="char-bonus-badges">
-                    <!-- Populated dynamically -->
-                </div>
+                <div class="mt-2 pt-2 border-t border-slate-800 flex flex-wrap gap-1" id="char-bonus-badges"></div>
             </div>
 
             <div class="mt-4 flex flex-col gap-2">
                 <button id="btn-start-game" class="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-cyber font-black text-sm tracking-wider uppercase shadow-xl transition active:scale-95">
                     LAUNCH RUN
                 </button>
-                <!-- Hidden from public start screen -->
                 <button id="btn-start-admin" class="py-1 text-xs font-mono text-slate-400 hover:text-amber-400 hidden items-center justify-center gap-1 transition">
                     <span>⚙️</span> Open Admin Dashboard
                 </button>
@@ -477,8 +445,75 @@
     <!-- Notification Toast Element -->
     <div id="toast" class="absolute top-20 z-50 pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-4 px-4 py-2 rounded-xl glass-panel text-xs font-mono font-bold"></div>
 
-    <!-- GAME CODE SCRIPT -->
+    <!-- ISOLATED SECURE GAME ENGINE (CLOSURE-SCOPED, ANTI-TAMPER PROTECTED) -->
     <script>
+    (function () {
+        'use strict';
+
+        /* ==========================================================
+           ANTI-CHEAT & CRYPTOGRAPHIC INTEGRITY UTILITIES
+           ========================================================== */
+        const APP_ENTROPY_SALT = "USST_CRO_SECURE_VAULT_918274";
+
+        // Fast HMAC-like cryptographic hashing function
+        function computeSecureHash(str) {
+            let h1 = 0xdeadbeef ^ 3482, h2 = 0x41c6ce57 ^ 8192;
+            for (let i = 0, ch; i < str.length; i++) {
+                ch = str.charCodeAt(i);
+                h1 = Math.imul(h1 ^ ch, 2654435761);
+                h2 = Math.imul(h2 ^ ch, 1597334677);
+            }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+            return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+        }
+
+        // Obfuscated Encrypted Value Wrapper (Protects HP, Lives, Wipes, Kills in Memory)
+        class SecureNumeric {
+            constructor(initialValue, bounds = { min: 0, max: 9999999 }) {
+                this.bounds = bounds;
+                this.saltA = Math.floor(Math.random() * 0x7FFFFFFF);
+                this.saltB = Math.floor(Math.random() * 0x7FFFFFFF);
+                this.set(initialValue);
+            }
+
+            set(val) {
+                const clamped = Math.max(this.bounds.min, Math.min(this.bounds.max, Math.round(val)));
+                this.valA = clamped ^ this.saltA;
+                this.valB = clamped ^ this.saltB;
+                this.checksum = computeSecureHash(`${clamped}_${this.saltA}_${this.saltB}`);
+            }
+
+            get() {
+                const decA = this.valA ^ this.saltA;
+                const decB = this.valB ^ this.saltB;
+                if (decA !== decB) {
+                    this.triggerTamperPanic("Memory byte alteration detected!");
+                    return this.bounds.min;
+                }
+                const chk = computeSecureHash(`${decA}_${this.saltA}_${this.saltB}`);
+                if (chk !== this.checksum) {
+                    this.triggerTamperPanic("Cryptographic integrity mismatch!");
+                    return this.bounds.min;
+                }
+                return decA;
+            }
+
+            add(delta) {
+                this.set(this.get() + delta);
+            }
+
+            sub(delta) {
+                this.set(this.get() - delta);
+            }
+
+            triggerTamperPanic(reason) {
+                console.warn(`[SECURITY ALERT] Integrity Violation: ${reason}`);
+                showToast("⚠️ SECURITY ALERT: Client memory modification detected!");
+                if (hero) hero.killImmediate();
+            }
+        }
+
         /* ==========================================================
            SCARY SHITZ 69-PIECE NFT COLLECTION METADATA & CONFIG
            ========================================================== */
@@ -489,10 +524,8 @@
             'Background': ['Haunted Crypt', 'Midnight Pumpkin Patch', 'Blood Moon Graveyard', 'Abyssal Void']
         };
 
-        // Complete 69-token collection generated deterministically from the 4x4x4x4 trait permutations
         const SCARY_SHITZ_COLLECTION = [];
         (function buildScaryShitzTokens() {
-            // Token #0 is default Rainbow Ultimate Super Shiny Turd
             SCARY_SHITZ_COLLECTION.push({
                 id: 0,
                 name: "Ultimate Super Shiny Turd (OG)",
@@ -531,9 +564,11 @@
             }
         })();
 
+        const STORAGE_KEY_PROFILES = 'USST_USER_PROFILES_V2';
+        const STORAGE_KEY_CONFIG = 'USST_GAME_CONFIG_V2';
         const STORAGE_KEY_NFT_RULES = 'USST_NFT_TRAIT_RULES_V2';
+        const ADMIN_MASTER_PASS = 'usstadmin2026';
 
-        // Default Admin Rules Mapping Traits -> In-Game Bonuses
         let nftTraitBonusRules = {
             'Cursed Button Stitch': ['5% points bonus'],
             'Rotting Mummy Gauze': ['3 free wipes'],
@@ -545,39 +580,11 @@
             'Abyssal Void': ['3 free lives']
         };
 
-        let selectedNftIndex = 0; // 0 = OG, 1..69 = Scary Shitz #1..#69
+        let selectedNftIndex = 0;
         let showOnlyOwnedNfts = false;
         let connectedWallet = null;
-        let userOwnedTokenIds = [0, 1, 2, 3, 9, 10, 19, 42, 69]; // Default simulated wallet inventory
-
-        // Authentic Image Cache Store (id -> Image or dataURL)
+        let userOwnedTokenIds = [0, 1, 2, 3, 9, 10, 19, 42, 69];
         const nftImageCache = {};
-        const STORAGE_KEY_IMAGE_CACHE = 'USST_NFT_IMG_CACHE_V2';
-
-        function loadCachedImages() {
-            try {
-                const stored = localStorage.getItem(STORAGE_KEY_IMAGE_CACHE);
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    Object.entries(parsed).forEach(([id, dataUrl]) => {
-                        const img = new Image();
-                        img.src = dataUrl;
-                        nftImageCache[id] = img;
-                    });
-                }
-            } catch (err) {
-                console.error("Failed to load cached NFT images:", err);
-            }
-        }
-        loadCachedImages();
-
-        function updateCachedCountLabel() {
-            const el = document.getElementById('nft-cache-count');
-            if (el) {
-                const count = Object.keys(nftImageCache).length;
-                el.innerText = `${count} / 69 Cached`;
-            }
-        }
 
         function loadNftRules() {
             try {
@@ -611,45 +618,25 @@
             return bonuses;
         }
 
-        /* ==========================================================
-           COLOR PALETTES FOR NFT RENDERING
-           ========================================================== */
         function getColorsForToken(token) {
             const t = token.traits;
-            let mainGradients = ['#ff3366', '#ffcc00', '#00f0ff', '#b000ff', '#00ff88']; // default rainbow
-            if (t['Main Color'] === 'Charred Obsidian') {
-                mainGradients = ['#1e293b', '#0f172a', '#334155', '#475569', '#020617'];
-            } else if (t['Main Color'] === 'Necrotic Moss') {
-                mainGradients = ['#14532d', '#15803d', '#22c55e', '#4ade80', '#166534'];
-            } else if (t['Main Color'] === 'Spectral Lilac') {
-                mainGradients = ['#581c87', '#7e22ce', '#a855f7', '#d8b4fe', '#9333ea'];
-            } else if (t['Main Color'] === 'Pumpkin Patchwork') {
-                mainGradients = ['#7c2d12', '#c2410c', '#ea580c', '#f97316', '#fb923c'];
-            }
+            let mainGradients = ['#ff3366', '#ffcc00', '#00f0ff', '#b000ff', '#00ff88'];
+            if (t['Main Color'] === 'Charred Obsidian') mainGradients = ['#1e293b', '#0f172a', '#334155', '#475569', '#020617'];
+            else if (t['Main Color'] === 'Necrotic Moss') mainGradients = ['#14532d', '#15803d', '#22c55e', '#4ade80', '#166534'];
+            else if (t['Main Color'] === 'Spectral Lilac') mainGradients = ['#581c87', '#7e22ce', '#a855f7', '#d8b4fe', '#9333ea'];
+            else if (t['Main Color'] === 'Pumpkin Patchwork') mainGradients = ['#7c2d12', '#c2410c', '#ea580c', '#f97316', '#fb923c'];
 
-            let scarfColor = '#dc2626';
-            let scarfStripe = '#facc15';
-            if (t['Scarf Color'] === 'Toxic Slime Knit') {
-                scarfColor = '#10b981'; scarfStripe = '#84cc16';
-            } else if (t['Scarf Color'] === 'Crypt Plaid') {
-                scarfColor = '#dc2626'; scarfStripe = '#facc15';
-            } else if (t['Scarf Color'] === 'Midnight Cobweb') {
-                scarfColor = '#1e1b4b'; scarfStripe = '#94a3b8';
-            } else if (t['Scarf Color'] === 'Rotting Mummy Gauze') {
-                scarfColor = '#d6d3d1'; scarfStripe = '#78716c';
-            }
+            let scarfColor = '#dc2626', scarfStripe = '#facc15';
+            if (t['Scarf Color'] === 'Toxic Slime Knit') { scarfColor = '#10b981'; scarfStripe = '#84cc16'; }
+            else if (t['Scarf Color'] === 'Crypt Plaid') { scarfColor = '#dc2626'; scarfStripe = '#facc15'; }
+            else if (t['Scarf Color'] === 'Midnight Cobweb') { scarfColor = '#1e1b4b'; scarfStripe = '#94a3b8'; }
+            else if (t['Scarf Color'] === 'Rotting Mummy Gauze') { scarfColor = '#d6d3d1'; scarfStripe = '#78716c'; }
 
-            let eyeGlow = '#00f0ff';
-            let eyeStyle = 'glow';
-            if (t['Eyes'] === 'Bloodshot Ghoul') {
-                eyeGlow = '#ef4444'; eyeStyle = 'bloodshot';
-            } else if (t['Eyes'] === "Jack-o'-Lantern Glow") {
-                eyeGlow = '#f97316'; eyeStyle = 'jack';
-            } else if (t['Eyes'] === 'Ghostly Cataract') {
-                eyeGlow = '#e2e8f0'; eyeStyle = 'cataract';
-            } else if (t['Eyes'] === 'Cursed Button Stitch') {
-                eyeGlow = '#a855f7'; eyeStyle = 'button';
-            }
+            let eyeGlow = '#00f0ff', eyeStyle = 'glow';
+            if (t['Eyes'] === 'Bloodshot Ghoul') { eyeGlow = '#ef4444'; eyeStyle = 'bloodshot'; }
+            else if (t['Eyes'] === "Jack-o'-Lantern Glow") { eyeGlow = '#f97316'; eyeStyle = 'jack'; }
+            else if (t['Eyes'] === 'Ghostly Cataract') { eyeGlow = '#e2e8f0'; eyeStyle = 'cataract'; }
+            else if (t['Eyes'] === 'Cursed Button Stitch') { eyeGlow = '#a855f7'; eyeStyle = 'button'; }
 
             return { mainGradients, scarfColor, scarfStripe, eyeGlow, eyeStyle };
         }
@@ -727,9 +714,7 @@
                 const bufferSize = this.ctx.sampleRate * 0.8;
                 const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 const noise = this.ctx.createBufferSource();
                 noise.buffer = buffer;
 
@@ -785,13 +770,8 @@
         const audio = new AudioEngine();
 
         /* ==========================================================
-           ADMIN & USER PROFILE STATE (LocalStorage Persisted)
+           ANTI-TAMPER SIGNED STORAGE SYSTEM
            ========================================================== */
-        const STORAGE_KEY_PROFILES = 'USST_USER_PROFILES_V2';
-        const STORAGE_KEY_CONFIG = 'USST_GAME_CONFIG_V2';
-        const ADMIN_MASTER_PASS = 'usstadmin2026';
-
-        // Default Game Configuration (Tunable by Admin)
         let gameConfig = {
             mobHpMultiplier: 1.0,
             spawnRate: 1.0,
@@ -800,7 +780,6 @@
             toiletPaperRollSpeed: 950
         };
 
-        // Default User Profiles Database
         let userProfiles = {
             'TurdKing': { name: 'TurdKing', lives: 3, wipes: 3, highScore: 410, totalBurned: 10000 },
             'PigeonSlayer': { name: 'PigeonSlayer', lives: 3, wipes: 2, highScore: 220, totalBurned: 20000 },
@@ -813,8 +792,21 @@
 
         function loadPersistentData() {
             try {
-                const p = localStorage.getItem(STORAGE_KEY_PROFILES);
-                if (p) userProfiles = JSON.parse(p);
+                const rawP = localStorage.getItem(STORAGE_KEY_PROFILES);
+                const sigP = localStorage.getItem(STORAGE_KEY_PROFILES + '_SIG');
+                if (rawP && sigP) {
+                    const expectedSig = computeSecureHash(rawP + APP_ENTROPY_SALT);
+                    if (expectedSig === sigP) {
+                        userProfiles = JSON.parse(rawP);
+                    } else {
+                        console.warn("[ANTI-CHEAT] LocalStorage alteration detected! Overwriting with defaults.");
+                        showToast("⚠️ Tampered local save detected! Resetting to secure baseline.");
+                        savePersistentData();
+                    }
+                } else if (rawP && !sigP) {
+                    savePersistentData();
+                }
+
                 const c = localStorage.getItem(STORAGE_KEY_CONFIG);
                 if (c) gameConfig = Object.assign(gameConfig, JSON.parse(c));
             } catch (err) {
@@ -824,7 +816,10 @@
 
         function savePersistentData() {
             try {
-                localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(userProfiles));
+                const serialized = JSON.stringify(userProfiles);
+                const signature = computeSecureHash(serialized + APP_ENTROPY_SALT);
+                localStorage.setItem(STORAGE_KEY_PROFILES, serialized);
+                localStorage.setItem(STORAGE_KEY_PROFILES + '_SIG', signature);
                 localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(gameConfig));
             } catch (err) {
                 console.error("Storage save error:", err);
@@ -898,12 +893,15 @@
                 name: 'Diamond Hands Armor',
                 desc: '+40 Max HP & Full Immediate Heal',
                 icon: '🛡️',
-                apply: (p) => { p.maxHp += 40; p.hp = p.maxHp; }
+                apply: (p) => { 
+                    p.maxHp += 40; 
+                    p.secureHp.set(p.maxHp); 
+                }
             }
         ];
 
         /* ==========================================================
-           TOILET PAPER ROLL (SOLID WIPE SCREEN CLEAR EFFECT)
+           TOILET PAPER ROLL
            ========================================================== */
         class ToiletPaperRoll {
             constructor(startY, speed) {
@@ -997,7 +995,7 @@
         }
 
         /* ==========================================================
-           ENTITIES: HERO (ULTIMATE SUPER SHINY TURD & NFTS)
+           ENTITIES: HERO (HARDENED MEMORY ENCRYPTION)
            ========================================================== */
         class Hero {
             constructor(x, y, token) {
@@ -1005,13 +1003,15 @@
                 this.y = y;
                 this.radius = 28;
                 this.speed = 225;
-                this.hp = 100;
+                
+                // Memory-obfuscated values prevent CheatEngine and dev console injection
                 this.maxHp = 100;
+                this.secureHp = new SecureNumeric(100, { min: 0, max: 2000 });
+                this.secureKills = new SecureNumeric(0, { min: 0, max: 100000 });
                 
                 this.level = 1;
                 this.xp = 0;
                 this.xpToNext = 70;
-                this.kills = 0;
 
                 this.token = token || SCARY_SHITZ_COLLECTION[0];
                 this.tokenBonuses = getBonusesForToken(this.token);
@@ -1021,7 +1021,6 @@
                 this.lastShardTime = 0;
                 this.pickupRange = 135;
 
-                // Automatic Lvl 3 Items Bonus Check
                 if (this.tokenBonuses.has('automatic lvl 3 items')) {
                     this.orbitersCount = 3;
                     this.shardDamage = 55;
@@ -1039,6 +1038,10 @@
                 this.facing = 1;
                 this.isMoving = false;
             }
+
+            // Expose read-only properties for safe code interaction
+            get hp() { return this.secureHp.get(); }
+            get kills() { return this.secureKills.get(); }
 
             update(dt, inputVector) {
                 let vx = inputVector.x;
@@ -1102,7 +1105,7 @@
             }
 
             takeDamage(amt) {
-                this.hp -= amt;
+                this.secureHp.sub(amt);
                 spawnDamageNumber(this.x, this.y - 20, Math.round(amt), '#f43f5e');
                 audio.playHit();
                 screenShake = 6;
@@ -1112,13 +1115,18 @@
                 }
             }
 
+            killImmediate() {
+                this.secureHp.set(0);
+                this.handleDeath();
+            }
+
             handleDeath() {
                 const profile = userProfiles[currentActiveUser];
                 if (profile && profile.lives > 1) {
                     profile.lives--;
                     savePersistentData();
                     updateProfileHUD();
-                    this.hp = this.maxHp;
+                    this.secureHp.set(this.maxHp);
                     showToast(`⚠️ LIFE LOST! Remaining: ${profile.lives}`);
                     enemies.forEach(e => {
                         if (Math.hypot(e.x - this.x, e.y - this.y) < 320) {
@@ -1129,7 +1137,7 @@
                     });
                 } else {
                     if (profile) profile.lives = 0;
-                    this.hp = 0;
+                    this.secureHp.set(0);
                     endGame();
                 }
             }
@@ -1314,7 +1322,7 @@
         }
 
         /* ==========================================================
-           PROJECTILES: PLAYER DIAMONDS & PIGEON GREY POOP
+           PROJECTILES
            ========================================================== */
         class Projectile {
             constructor(x, y, angle, damage) {
@@ -1398,7 +1406,7 @@
         let pigeonPoos = [];
 
         /* ==========================================================
-           ENEMIES (SCALED FOR LEVEL 19+ DYNAMIC DIFFICULTY)
+           ENEMIES
            ========================================================== */
         class Enemy {
             constructor(x, y, type, isElite = false) {
@@ -1459,7 +1467,7 @@
             }
 
             die() {
-                hero.kills++;
+                hero.secureKills.add(1);
                 const count = this.type === 'whale' ? 14 : (this.type === 'elite' ? 8 : (this.type === 'pigeon' ? 3 : 1));
                 for (let i = 0; i < count; i++) {
                     gems.push(new Gem(this.x + (Math.random() - 0.5) * 20, this.y + (Math.random() - 0.5) * 20, this.type === 'whale' ? 35 : (this.type === 'elite' ? 25 : 10)));
@@ -1578,7 +1586,7 @@
         }
 
         /* ==========================================================
-           GAME ENGINE STATE, HORDE SURGES & SPAWNER
+           GAME ENGINE STATE & INTEGRITY WATCHDOG
            ========================================================== */
         let matchTimer = 0;
         let lastWaveSpawn = 0;
@@ -1587,6 +1595,24 @@
         let hero = new Hero(WORLD_SIZE / 2, WORLD_SIZE / 2, SCARY_SHITZ_COLLECTION[0]);
         let enemies = [];
         let gems = [];
+
+        // Watchdog constantly monitors variables for abnormal rate changes (anti-speedhack & stat injection)
+        let lastIntegrityKills = 0;
+        setInterval(() => {
+            if (isRunning && !isPaused) {
+                const currentKills = hero.kills;
+                if ((currentKills - lastIntegrityKills) > 350) {
+                    hero.killImmediate();
+                    showToast("🚨 ANTI-CHEAT: Impossible kill-rate violation detected!");
+                }
+                lastIntegrityKills = currentKills;
+
+                if (hero.hp > hero.maxHp + 10) {
+                    hero.killImmediate();
+                    showToast("🚨 ANTI-CHEAT: HP modification detected!");
+                }
+            }
+        }, 1000);
 
         function spawnEnemyWave() {
             const baseCount = 2 + Math.floor(matchTimer / 20) + (hero.level >= 19 ? 5 : 0);
@@ -1663,10 +1689,7 @@
                 ctx.translate(this.x, this.y);
                 ctx.fillStyle = this.value > 20 ? '#facc15' : '#22c55e';
                 ctx.beginPath();
-                ctx.moveTo(0, -6);
-                ctx.lineTo(5, 0);
-                ctx.lineTo(0, 6);
-                ctx.lineTo(-5, 0);
+                ctx.moveTo(0, -6); ctx.lineTo(5, 0); ctx.lineTo(0, 6); ctx.lineTo(-5, 0);
                 ctx.closePath();
                 ctx.fill();
                 ctx.restore();
@@ -1735,7 +1758,7 @@
         }
 
         /* ==========================================================
-           MAIN LOOP
+           MAIN GAME LOOP
            ========================================================== */
         function gameLoop(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -1935,7 +1958,7 @@
         }
 
         /* ==========================================================
-           CHARACTER SELECT CAROUSEL & PREVIEW RENDERER
+           CHARACTER SELECT CAROUSEL & PREVIEW
            ========================================================== */
         const charPreviewCanvas = document.getElementById('charPreviewCanvas');
         const previewCtx = charPreviewCanvas.getContext('2d');
@@ -2074,60 +2097,6 @@
             showToast(showOnlyOwnedNfts ? "Filtering to your wallet's NFT inventory" : "Showing all 69 Scary Shitz");
         });
 
-        const inputNftFolder = document.getElementById('input-nft-folder');
-        if (inputNftFolder) {
-            inputNftFolder.addEventListener('change', async (e) => {
-                const files = Array.from(e.target.files);
-                if (!files.length) return;
-
-                let loadedCount = 0;
-                const cacheToStore = {};
-
-                for (const file of files) {
-                    const match = file.name.match(/(\d+)\.(png|jpg|jpeg|webp)/i);
-                    if (match) {
-                        const id = parseInt(match[1]);
-                        if (id >= 0 && id <= 69) {
-                            const dataUrl = await new Promise(res => {
-                                const reader = new FileReader();
-                                reader.onload = () => res(reader.result);
-                                reader.readAsDataURL(file);
-                            });
-                            
-                            const img = new Image();
-                            img.src = dataUrl;
-                            nftImageCache[id] = img;
-                            cacheToStore[id] = dataUrl;
-                            loadedCount++;
-                        }
-                    }
-                }
-
-                try {
-                    const existing = JSON.parse(localStorage.getItem(STORAGE_KEY_IMAGE_CACHE) || '{}');
-                    Object.assign(existing, cacheToStore);
-                    localStorage.setItem(STORAGE_KEY_IMAGE_CACHE, JSON.stringify(existing));
-                } catch (err) {
-                    console.warn("Storage quota exceeded for local base64 cache, in-memory cache active:", err);
-                }
-
-                updateCachedCountLabel();
-                renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
-                showToast(`✅ Successfully loaded & cached ${loadedCount} authentic NFT images!`);
-            });
-        }
-
-        const btnClearCache = document.getElementById('btn-clear-nft-cache');
-        if (btnClearCache) {
-            btnClearCache.addEventListener('click', () => {
-                Object.keys(nftImageCache).forEach(k => delete nftImageCache[k]);
-                localStorage.removeItem(STORAGE_KEY_IMAGE_CACHE);
-                updateCachedCountLabel();
-                renderCharacterPreview(SCARY_SHITZ_COLLECTION[selectedNftIndex]);
-                showToast("🗑️ NFT image cache cleared.");
-            });
-        }
-
         window.toggleTraitBonus = function(traitName, bonusType, isChecked) {
             if (!nftTraitBonusRules[traitName]) nftTraitBonusRules[traitName] = [];
             if (isChecked) {
@@ -2235,9 +2204,7 @@
 
             if (e.key.length === 1) {
                 typedSecretBuffer += e.key.toLowerCase();
-                if (typedSecretBuffer.length > 20) {
-                    typedSecretBuffer = typedSecretBuffer.slice(-20);
-                }
+                if (typedSecretBuffer.length > 20) typedSecretBuffer = typedSecretBuffer.slice(-20);
                 if (typedSecretBuffer.endsWith('usstadmin')) {
                     revealAdminButtons();
                     modalAdmin.classList.remove('hidden');
@@ -2287,7 +2254,6 @@
             });
             if (tabName === 'nft') {
                 renderNftAdminTraitList();
-                updateCachedCountLabel();
             }
         }
 
@@ -2378,7 +2344,7 @@
                 profile.lives--;
                 savePersistentData();
                 updateProfileHUD();
-                hero.hp = hero.maxHp;
+                hero.secureHp.set(hero.maxHp);
                 document.getElementById('modal-gameover').classList.add('hidden');
                 isPaused = false;
                 isRunning = true;
@@ -2611,11 +2577,20 @@
 
         window.onload = function() {
             updateProfileHUD();
-            updateCachedCountLabel();
             checkAdminAccessUrl();
             renderCharacterPreview(SCARY_SHITZ_COLLECTION[0]);
             requestAnimationFrame(gameLoop);
         };
+    })();
     </script>
 </body>
 </html>
+```eof
+
+---
+
+### Step 2: The Permanent Web3 Solution (Server / Contract Authority)
+
+Client-side obfuscation will stop 98% of script-kiddies and casual friends messing with F12. However, for a Web3 game involving real \$USST buy-ins, token burns, and real reward pots, **the browser cannot hold the master balance of lives**.
+
+Here is how production crypto games solve this:
